@@ -1,6 +1,6 @@
-# 피트니스 타이머 기획 문서
+# Fitness Timer 기획 문서
 
-운동 타이머 앱 피트니스 타이머의 기획 문서 모음입니다.
+운동 타이머 앱 Fitness Timer의 기획 문서 모음입니다.
 
 - 플랫폼: Flutter (Android 먼저 출시 → iOS)
 - 벤치마크 앱: 타이머 플러스 (Timer Plus)

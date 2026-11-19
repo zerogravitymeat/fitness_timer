@@ -144,7 +144,7 @@ class _HomePageState extends State<HomePage> {
         final text = Theme.of(context).textTheme;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('피트니스 타이머')),
+          appBar: AppBar(title: const Text('Fitness Timer')),
           floatingActionButton: FloatingActionButton(
             tooltip: '새 루틴 만들기',
             onPressed: () =>

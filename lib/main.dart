@@ -17,7 +17,7 @@ class FitnessTimerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '피트니스 타이머',
+      title: 'Fitness Timer',
       debugShowCheckedModeBanner: false,
       // MVP는 다크 테마만 (docs/04 2.4절). 글래스 디자인은 개발 7단계에서.
       theme: ThemeData(

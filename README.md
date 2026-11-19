@@ -1,6 +1,6 @@
 # fitness_timer
 
-피트니스 타이머 - 운동용 인터벌·세트 타이머
+Fitness Timer - 운동용 인터벌·세트 타이머
 
 ## Getting Started
 
