@@ -83,6 +83,61 @@ class Routine {
   /// 운동 구간 하나의 길이
   int get workDurationMs => isReps ? targetReps * tempo.repMs : workMs;
 
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'isPreset': isPreset,
+    'endCondition': endCondition.name,
+    'prepMs': prepMs,
+    'workMs': workMs,
+    'targetReps': targetReps,
+    'tempo': {
+      'downMs': tempo.downMs,
+      'holdMs': tempo.holdMs,
+      'upMs': tempo.upMs,
+    },
+    'restMs': restMs,
+    'rounds': rounds,
+    'sets': sets,
+    'setRestMs': setRestMs,
+    'skipLastRest': skipLastRest,
+    'cueStyle': cueStyle.name,
+  };
+
+  /// 알 수 없는 값이나 빠진 값은 기본값으로 채운다. 범위는 [normalized]가 맞춘다.
+  factory Routine.fromJson(Map<String, Object?> j) {
+    const d = Routine(id: '', name: '');
+    int i(String k, int def) => (j[k] as num?)?.toInt() ?? def;
+    final t = (j['tempo'] as Map?)?.cast<String, Object?>() ?? const {};
+    int ti(String k, int def) => (t[k] as num?)?.toInt() ?? def;
+    T byName<T extends Enum>(List<T> values, Object? v, T def) =>
+        values.where((e) => e.name == v).firstOrNull ?? def;
+    return Routine(
+      id: j['id'] as String? ?? '',
+      name: j['name'] as String? ?? '',
+      isPreset: j['isPreset'] as bool? ?? false,
+      endCondition: byName(
+        EndCondition.values,
+        j['endCondition'],
+        d.endCondition,
+      ),
+      prepMs: i('prepMs', d.prepMs),
+      workMs: i('workMs', d.workMs),
+      targetReps: i('targetReps', d.targetReps),
+      tempo: Tempo(
+        downMs: ti('downMs', d.tempo.downMs),
+        holdMs: ti('holdMs', d.tempo.holdMs),
+        upMs: ti('upMs', d.tempo.upMs),
+      ),
+      restMs: i('restMs', d.restMs),
+      rounds: i('rounds', d.rounds),
+      sets: i('sets', d.sets),
+      setRestMs: i('setRestMs', d.setRestMs),
+      skipLastRest: j['skipLastRest'] as bool? ?? d.skipLastRest,
+      cueStyle: byName(CueStyle.values, j['cueStyle'], d.cueStyle),
+    );
+  }
+
   /// 모든 값을 허용 범위 안으로 맞춘 사본 (docs/02_기능_명세.md 2.1절, 3.2절).
   /// 편집 화면에서 범위를 막더라도, 파일에서 읽은 값이 손상됐을 수 있으므로
   /// 엔진은 항상 이 값을 쓴다.
