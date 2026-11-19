@@ -87,6 +87,45 @@ class EngineSnapshot {
   int get segmentRemainingMs => max(0, segmentDurationMs - segmentElapsedMs);
 }
 
+/// 이어하기용 저장 상태 (docs/02_기능_명세.md 7장, docs/05 5.3절).
+/// 구간 위치와 진행 시간만 저장하고, 구간 목록은 루틴에서 다시 만든다.
+class EngineCheckpoint {
+  const EngineCheckpoint({
+    required this.segmentIndex,
+    required this.segmentElapsedMs,
+    required this.extraMs,
+    required this.totalActiveMs,
+    required this.trialCounted,
+  });
+
+  final int segmentIndex;
+  final int segmentElapsedMs;
+
+  /// 휴식 +10초로 늘어난 시간
+  final int extraMs;
+  final int totalActiveMs;
+  final bool trialCounted;
+
+  Map<String, Object?> toJson() => {
+    'segmentIndex': segmentIndex,
+    'segmentElapsedMs': segmentElapsedMs,
+    'extraMs': extraMs,
+    'totalActiveMs': totalActiveMs,
+    'trialCounted': trialCounted,
+  };
+
+  factory EngineCheckpoint.fromJson(Map<String, Object?> j) {
+    int i(String k) => (j[k] as num?)?.toInt() ?? 0;
+    return EngineCheckpoint(
+      segmentIndex: i('segmentIndex'),
+      segmentElapsedMs: i('segmentElapsedMs'),
+      extraMs: i('extraMs'),
+      totalActiveMs: i('totalActiveMs'),
+      trialCounted: j['trialCounted'] as bool? ?? false,
+    );
+  }
+}
+
 // ───────────────────────── 엔진 ─────────────────────────
 
 /// 시간 진행의 핵심. 순수 Dart이며 시계를 주입받는다 (docs/05_기술_설계.md 3장).
@@ -158,6 +197,44 @@ class TimerCore {
     _enter(0, 0, events);
     if (_status == RunStatus.running) events.addAll(tick());
     return events;
+  }
+
+  /// 저장해 둔 위치에서 **일시정지 상태로** 다시 시작한다 (이어하기).
+  /// 사용자가 재개를 눌러야 진행된다 (docs/03 D1).
+  List<EngineEvent> restore(EngineCheckpoint c) {
+    if (_status != RunStatus.idle) return [];
+    if (segments.isEmpty || c.segmentIndex >= segments.length) return start();
+    final i = c.segmentIndex.clamp(0, segments.length - 1);
+    final extra = segments[i].isRest ? max(0, c.extraMs) : 0;
+    final dur = segments[i].durationMs + extra;
+    final segElapsed = min(max(0, c.segmentElapsedMs), max(0, dur - 1));
+    final total = max(c.totalActiveMs, segElapsed);
+
+    final now = clock();
+    _clockStart = now - total;
+    _pausedAccum = 0;
+    _pausedAt = now;
+    _status = RunStatus.paused;
+    _trialSent = c.trialCounted;
+
+    final events = <EngineEvent>[];
+    _enter(i, total - segElapsed, events);
+    _extraMs = extra;
+    _cues = _plan(i);
+    _cuePtr = _firstCueAfter(segElapsed);
+    return events;
+  }
+
+  /// 지금 상태를 저장용으로 (이어하기)
+  EngineCheckpoint get checkpoint {
+    final total = activeMs;
+    return EngineCheckpoint(
+      segmentIndex: _index,
+      segmentElapsedMs: max(0, total - _segStart),
+      extraMs: _extraMs,
+      totalActiveMs: total,
+      trialCounted: _trialSent,
+    );
   }
 
   List<EngineEvent> tick() {

@@ -5,10 +5,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../engine/timer_core.dart';
+import '../../engine/cue_planner.dart';
+import '../../models/app_settings.dart';
 import '../../models/routine.dart';
 import '../audio/cue_player.dart';
 import 'run_labels.dart';
 import 'run_protocol.dart';
+import 'run_snapshot_store.dart';
 import 'run_view.dart';
 
 /// 포그라운드 서비스 진입점. 최상위 함수여야 한다.
@@ -39,9 +42,19 @@ class RunTaskHandler extends TaskHandler {
   int _lastNotifySec = -1;
   RunStatus? _lastNotifyStatus;
   Finished? _finished;
+  RunSnapshotStore? _snapshots;
+  int _lastSnapshotAt = 0;
+  static const snapshotInterval = Duration(seconds: 5);
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    // 시스템이 서비스를 되살린 경우(앱이 강제 종료된 뒤 등)에는 운동을 처음부터
+    // 몰래 다시 시작하지 않는다. 저장된 진행 상태는 남겨 두고, 사용자가 앱을 열면
+    // 이어하기 확인 창으로 묻는다 (docs/02 7장, docs/03 D1).
+    if (starter == TaskStarter.system) {
+      await FlutterForegroundTask.stopService();
+      return;
+    }
     final raw = await FlutterForegroundTask.getData<String>(
       key: RunProtocol.routineKey,
     );
@@ -52,8 +65,24 @@ class RunTaskHandler extends TaskHandler {
     final routine = Routine.fromJson(
       (jsonDecode(raw) as Map).cast<String, Object?>(),
     );
+    final settings = await _readJson(RunProtocol.settingsKey);
+    final app = settings == null
+        ? const AppSettings()
+        : AppSettings.fromJson(settings);
+    final restore = await _readJson(RunProtocol.restoreKey);
+    final dataDir = await FlutterForegroundTask.getData<String>(
+      key: RunProtocol.dataDirKey,
+    );
+    if (dataDir != null) _snapshots = RunSnapshotStore(dataDir);
 
-    final player = CuePlayer();
+    final player = CuePlayer(
+      settings: CuePlayerSettings(
+        sound: app.sound,
+        vibration: app.vibration,
+        voice: app.voice,
+        speechRate: app.speechSpeed.ttsRate,
+      ),
+    );
     await player.init(
       soundDir: await FlutterForegroundTask.getData<String>(
         key: RunProtocol.soundDirKey,
@@ -65,22 +94,54 @@ class RunTaskHandler extends TaskHandler {
     final core = TimerCore(
       routine: routine,
       clock: () => _stopwatch.elapsedMilliseconds,
+      settings: CueSettings(countdownSeconds: app.countdownSeconds),
     );
     _core = core;
-    _handle(core.start());
+    _handle(
+      restore == null
+          ? core.start()
+          : core.restore(EngineCheckpoint.fromJson(restore)),
+    );
+    _saveSnapshot();
     _ticker = Timer.periodic(tickInterval, (_) => _handle(core.tick()));
+  }
+
+  static Future<Map<String, Object?>?> _readJson(String key) async {
+    final raw = await FlutterForegroundTask.getData<String>(key: key);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return (jsonDecode(raw) as Map).cast<String, Object?>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 이어하기용 진행 상태 저장 (구간이 바뀔 때, 조작할 때, 5초마다)
+  void _saveSnapshot() {
+    final core = _core;
+    final store = _snapshots;
+    if (core == null || store == null || _finished != null) return;
+    _lastSnapshotAt = core.activeMs;
+    final v = RunView.from(core);
+    store.save(core.routine, core.checkpoint, RunLabels.progress(v)).catchError(
+      (Object e) {
+        debugPrint('RunTaskHandler: 진행 상태 저장 실패 $e');
+      },
+    );
   }
 
   void _handle(List<EngineEvent> events) {
     final core = _core;
     if (core == null) return;
     var changed = false;
+    var saveNeeded = false;
     for (final e in events) {
       switch (e) {
         case CueDue(:final cue):
           _player?.play(cue);
         case SegmentStarted():
           changed = true;
+          saveNeeded = true;
         case TrialCountable():
           // 무료 체험 차감은 결제 단계에서 연결한다 (docs/02 10.2절)
           break;
@@ -98,7 +159,16 @@ class RunTaskHandler extends TaskHandler {
     }
     _updateNotification();
 
+    if (_finished == null &&
+        (saveNeeded ||
+            core.activeMs - _lastSnapshotAt >=
+                snapshotInterval.inMilliseconds)) {
+      _saveSnapshot();
+    }
+
     if (_finished != null && _ticker != null) {
+      // 정상적으로 끝났으므로 이어하기 상태를 지운다
+      _snapshots?.clear();
       _ticker!.cancel();
       _ticker = null;
       FlutterForegroundTask.sendDataToMain({
@@ -167,8 +237,10 @@ class RunTaskHandler extends TaskHandler {
       case RunProtocol.cmdStop:
         _handle(core.stop());
       case RunProtocol.cmdView:
-        break;
+        _sendView();
+        return;
     }
+    _saveSnapshot();
     _sendView();
   }
 

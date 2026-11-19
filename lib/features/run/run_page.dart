@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../app/app_services.dart';
 import '../../engine/segment.dart';
 import '../../engine/tempo_clock.dart';
 import '../../engine/timer_core.dart';
@@ -29,7 +30,8 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    WakelockPlus.enable(); // 진행 화면이 열려 있는 동안 화면 켜 둠 (docs/05 6.4절)
+    // 진행 화면이 열려 있는 동안 화면 켜 둠 (docs/05 6.4절, 설정에서 끌 수 있음)
+    if (AppServices.settings.value.keepScreenOn) WakelockPlus.enable();
     _client.addListener(_onClient);
     // 서비스가 0.5초마다 보내는 상태를 화면에서 매 프레임 보간해 그린다
     _ticker = createTicker((_) => setState(() {}))..start();

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../app/app_services.dart';
+import '../../engine/timer_core.dart';
 import '../../models/presets.dart';
 import '../../models/routine.dart';
 import '../../services/run/run_client.dart';
+import '../../services/run/run_snapshot_store.dart';
 import '../../services/storage/routine_repository.dart';
 import '../../services/storage/routine_store.dart';
 import '../common/routine_summary.dart';
 import '../edit/edit_page.dart';
 import '../edit/edit_rules.dart';
 import '../run/run_page.dart';
+import '../settings/settings_page.dart';
 
 /// S1 홈 (docs/03_화면_설계.md 3장). 글래스 디자인은 개발 7단계에서 입힌다.
 class HomePage extends StatefulWidget {
@@ -27,12 +31,87 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // 앱을 다시 열었는데 운동이 진행 중이면 진행 화면으로 (docs/03 5.5절)
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (await RunClient.instance.reattach() && mounted) _openRun();
+      if (await RunClient.instance.reattach()) {
+        if (mounted) _openRun();
+        return;
+      }
+      // 서비스는 없는데 진행 상태가 남아 있으면 비정상 종료 (docs/03 D1)
+      final saved = await AppServices.runSnapshots.load();
+      if (saved != null && mounted) await _askResume(saved);
     });
   }
 
-  Future<void> _start(Routine r) async {
-    final ok = await RunClient.instance.start(r);
+  /// D1 이어하기 확인 (docs/03_화면_설계.md 8장)
+  Future<void> _askResume(SavedRun saved) async {
+    final batteryLimited =
+        !await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+    if (!mounted) return;
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        title: const Text('운동이 중간에 멈췄어요'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 조사(을/를) 문제가 없도록 루틴 이름을 따로 보여준다
+            Text(
+              saved.progressLabel.isEmpty
+                  ? saved.routine.name
+                  : '${saved.routine.name} · ${saved.progressLabel}',
+              style: Theme.of(c).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            const Text('멈춘 곳부터 이어서 할까요?'),
+            if (batteryLimited) ...[
+              const SizedBox(height: 16),
+              // 제조사 배터리 최적화가 앱을 종료했을 수 있다 (docs/05 6.3절 3차 방어)
+              Text(
+                '휴대폰의 배터리 최적화 때문에 멈췄을 수 있어요. '
+                '배터리 설정에서 이 앱을 "제한 없음"으로 바꾸면 화면이 꺼져도 끊기지 않아요.',
+                style: Theme.of(c).textTheme.bodySmall,
+              ),
+              TextButton(
+                onPressed:
+                    FlutterForegroundTask.openIgnoreBatteryOptimizationSettings,
+                child: const Text('배터리 설정 열기'),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, 'discard'),
+            child: const Text('버리기'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, 'restart'),
+            child: const Text('처음부터'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, 'resume'),
+            child: const Text('이어서 하기'),
+          ),
+        ],
+      ),
+    );
+    await AppServices.runSnapshots.clear();
+    switch (choice) {
+      case 'resume':
+        await _start(saved.routine, restore: saved.checkpoint);
+      case 'restart':
+        await _start(saved.routine);
+    }
+  }
+
+  Future<void> _start(Routine r, {EngineCheckpoint? restore}) async {
+    final ok = await RunClient.instance.start(
+      r,
+      settings: AppServices.settings.value,
+      dataDir: AppServices.dataDir,
+      restore: restore,
+    );
     if (!mounted) return;
     if (!ok) {
       ScaffoldMessenger.of(context)
@@ -144,7 +223,18 @@ class _HomePageState extends State<HomePage> {
         final text = Theme.of(context).textTheme;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Fitness Timer')),
+          appBar: AppBar(
+            title: const Text('Fitness Timer'),
+            actions: [
+              IconButton(
+                tooltip: '설정',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const SettingsPage())),
+              ),
+            ],
+          ),
           floatingActionButton: FloatingActionButton(
             tooltip: '새 루틴 만들기',
             onPressed: () =>

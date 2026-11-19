@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
+import '../../engine/timer_core.dart';
+import '../../models/app_settings.dart';
 import '../../models/routine.dart';
 import '../audio/sound_files.dart';
 import 'run_protocol.dart';
@@ -68,7 +70,13 @@ class RunClient extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> start(Routine routine) async {
+  /// [restore]가 있으면 저장된 위치에서 일시정지 상태로 이어서 시작한다.
+  Future<bool> start(
+    Routine routine, {
+    required AppSettings settings,
+    required String dataDir,
+    EngineCheckpoint? restore,
+  }) async {
     final perm = await FlutterForegroundTask.checkNotificationPermission();
     if (perm != NotificationPermission.granted) {
       // 거부해도 타이머는 시작한다 (docs/03 D2)
@@ -79,6 +87,18 @@ class RunClient extends ChangeNotifier {
     await FlutterForegroundTask.saveData(
       key: RunProtocol.soundDirKey,
       value: await SoundFiles.prepare(),
+    );
+    await FlutterForegroundTask.saveData(
+      key: RunProtocol.settingsKey,
+      value: jsonEncode(settings.toJson()),
+    );
+    await FlutterForegroundTask.saveData(
+      key: RunProtocol.dataDirKey,
+      value: dataDir,
+    );
+    await FlutterForegroundTask.saveData(
+      key: RunProtocol.restoreKey,
+      value: restore == null ? '' : jsonEncode(restore.toJson()),
     );
     await FlutterForegroundTask.saveData(
       key: RunProtocol.routineKey,
