@@ -56,7 +56,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Health Timer')),
+      appBar: AppBar(title: const Text('피트니스 타이머')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

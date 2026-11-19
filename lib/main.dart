@@ -6,16 +6,16 @@ import 'services/run/run_client.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   RunClient.instance.init();
-  runApp(const HealthTimerApp());
+  runApp(const FitnessTimerApp());
 }
 
-class HealthTimerApp extends StatelessWidget {
-  const HealthTimerApp({super.key});
+class FitnessTimerApp extends StatelessWidget {
+  const FitnessTimerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Health Timer',
+      title: '피트니스 타이머',
       debugShowCheckedModeBanner: false,
       // MVP는 다크 테마만 (docs/04 2.4절). 글래스 디자인은 개발 7단계에서.
       theme: ThemeData(

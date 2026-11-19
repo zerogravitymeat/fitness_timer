@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:health_timer/engine/segment.dart';
-import 'package:health_timer/engine/tempo_clock.dart';
-import 'package:health_timer/engine/timer_core.dart';
-import 'package:health_timer/models/presets.dart';
-import 'package:health_timer/models/routine.dart';
-import 'package:health_timer/services/run/run_labels.dart';
-import 'package:health_timer/services/run/run_view.dart';
+import 'package:fitness_timer/engine/segment.dart';
+import 'package:fitness_timer/engine/tempo_clock.dart';
+import 'package:fitness_timer/engine/timer_core.dart';
+import 'package:fitness_timer/models/presets.dart';
+import 'package:fitness_timer/models/routine.dart';
+import 'package:fitness_timer/services/run/run_labels.dart';
+import 'package:fitness_timer/services/run/run_view.dart';
 
 void main() {
   test('Routine JSON 왕복', () {

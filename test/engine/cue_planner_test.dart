@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:health_timer/engine/cue.dart';
-import 'package:health_timer/engine/cue_planner.dart';
-import 'package:health_timer/engine/routine_compiler.dart';
-import 'package:health_timer/engine/segment.dart';
-import 'package:health_timer/models/presets.dart';
-import 'package:health_timer/models/routine.dart';
+import 'package:fitness_timer/engine/cue.dart';
+import 'package:fitness_timer/engine/cue_planner.dart';
+import 'package:fitness_timer/engine/routine_compiler.dart';
+import 'package:fitness_timer/engine/segment.dart';
+import 'package:fitness_timer/models/presets.dart';
+import 'package:fitness_timer/models/routine.dart';
 
 List<Cue> _plan(
   Routine r,

@@ -1,6 +1,6 @@
-# health_timer
+# fitness_timer
 
-Health Timer - 피트니스 운동 타이머
+피트니스 타이머 - 운동용 인터벌·세트 타이머
 
 ## Getting Started
 

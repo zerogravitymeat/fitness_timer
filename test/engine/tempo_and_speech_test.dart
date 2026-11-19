@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:health_timer/engine/korean_speech.dart';
-import 'package:health_timer/engine/tempo_clock.dart';
-import 'package:health_timer/models/routine.dart';
+import 'package:fitness_timer/engine/korean_speech.dart';
+import 'package:fitness_timer/engine/tempo_clock.dart';
+import 'package:fitness_timer/models/routine.dart';
 
 void main() {
   group('TempoClock', () {

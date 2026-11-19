@@ -1,4 +1,4 @@
-package com.healthtimer.health_timer
+package io.github.zerogravitymeat.fitnesstimer
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:health_timer/engine/cue.dart';
-import 'package:health_timer/engine/segment.dart';
-import 'package:health_timer/engine/tempo_clock.dart';
-import 'package:health_timer/engine/timer_core.dart';
-import 'package:health_timer/models/presets.dart';
-import 'package:health_timer/models/routine.dart';
+import 'package:fitness_timer/engine/cue.dart';
+import 'package:fitness_timer/engine/segment.dart';
+import 'package:fitness_timer/engine/tempo_clock.dart';
+import 'package:fitness_timer/engine/timer_core.dart';
+import 'package:fitness_timer/models/presets.dart';
+import 'package:fitness_timer/models/routine.dart';
 
 class FakeClock {
   int now = 1000000; // 0이 아닌 값에서 시작해도 동작해야 한다
