@@ -83,6 +83,44 @@ class Routine {
   /// 운동 구간 하나의 길이
   int get workDurationMs => isReps ? targetReps * tempo.repMs : workMs;
 
+  Routine copyWith({
+    String? id,
+    String? name,
+    bool? isPreset,
+    EndCondition? endCondition,
+    int? prepMs,
+    int? workMs,
+    int? targetReps,
+    Tempo? tempo,
+    int? restMs,
+    int? rounds,
+    int? sets,
+    int? setRestMs,
+    bool? skipLastRest,
+    CueStyle? cueStyle,
+  }) => Routine(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    isPreset: isPreset ?? this.isPreset,
+    endCondition: endCondition ?? this.endCondition,
+    prepMs: prepMs ?? this.prepMs,
+    workMs: workMs ?? this.workMs,
+    targetReps: targetReps ?? this.targetReps,
+    tempo: tempo ?? this.tempo,
+    restMs: restMs ?? this.restMs,
+    rounds: rounds ?? this.rounds,
+    sets: sets ?? this.sets,
+    setRestMs: setRestMs ?? this.setRestMs,
+    skipLastRest: skipLastRest ?? this.skipLastRest,
+    cueStyle: cueStyle ?? this.cueStyle,
+  );
+
+  /// 저장할 때 비교용 (이름 공백 정리 등은 편집 화면에서)
+  bool sameSettingsAs(Routine o) {
+    final a = toJson()..remove('id'), b = o.toJson()..remove('id');
+    return a.toString() == b.toString();
+  }
+
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
@@ -181,4 +219,5 @@ abstract final class RoutineLimits {
   static const maxRounds = 99;
   static const maxSets = 20;
   static const maxSetRestMs = 30 * 60 * 1000;
+  static const maxNameLength = 20;
 }

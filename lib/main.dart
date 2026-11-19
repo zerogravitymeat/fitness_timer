@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'app/app_services.dart';
 import 'features/home/home_page.dart';
 import 'services/run/run_client.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   RunClient.instance.init();
+  await AppServices.init();
   runApp(const FitnessTimerApp());
 }
 
