@@ -4,9 +4,11 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../app/app_services.dart';
 import '../../engine/segment.dart';
+import '../../models/entitlement.dart';
 import '../../engine/tempo_clock.dart';
 import '../../engine/timer_core.dart';
 import '../../services/run/run_client.dart';
+import '../paywall/paywall_page.dart';
 import '../../services/run/run_labels.dart';
 import '../../services/run/run_protocol.dart';
 import '../../services/run/run_view.dart';
@@ -488,12 +490,25 @@ class _BigButton extends StatelessWidget {
 }
 
 /// 결과 화면 (docs/03 6장)
-class ResultPage extends StatelessWidget {
+class ResultPage extends StatefulWidget {
   const ResultPage({super.key, required this.result});
   final RunResult result;
 
   @override
+  State<ResultPage> createState() => _ResultPageState();
+}
+
+class _ResultPageState extends State<ResultPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 서비스가 차감한 무료 운동 횟수를 다시 읽는다
+    AppServices.entitlement.refreshTrial();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final result = widget.result;
     final v = result.lastView;
     return Scaffold(
       body: SafeArea(
@@ -524,6 +539,15 @@ class ResultPage extends StatelessWidget {
                   style: const TextStyle(fontSize: 20),
                 ),
               const Spacer(),
+              // 체험 안내 (docs/02 10.4절, docs/03 6장)
+              ListenableBuilder(
+                listenable: AppServices.entitlement,
+                builder: (context, _) => _TrialNotice(
+                  notice: AppServices.entitlement.noticeAfterRun(),
+                  remaining: AppServices.entitlement.value.freeRemaining,
+                ),
+              ),
+              const SizedBox(height: 12),
               FilledButton(
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(56),
@@ -539,5 +563,46 @@ class ResultPage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _TrialNotice extends StatelessWidget {
+  const _TrialNotice({required this.notice, required this.remaining});
+  final TrialNotice? notice;
+  final int remaining;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (notice) {
+      case null:
+        return const SizedBox.shrink();
+      case TrialNotice.remaining:
+        return TextButton(
+          onPressed: () => PaywallPage.open(context),
+          child: Text('무료 운동 $remaining회 남았어요 · 정식 버전 보기'),
+        );
+      case TrialNotice.ended:
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '무료 체험을 모두 사용했어요',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 6),
+                const Text('프리셋 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.'),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => PaywallPage.open(context),
+                  child: const Text('정식 버전 보기'),
+                ),
+              ],
+            ),
+          ),
+        );
+    }
   }
 }

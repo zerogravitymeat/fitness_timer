@@ -9,6 +9,7 @@ import '../../engine/cue_planner.dart';
 import '../../models/app_settings.dart';
 import '../../models/routine.dart';
 import '../audio/cue_player.dart';
+import '../billing/trial_store.dart';
 import 'run_labels.dart';
 import 'run_protocol.dart';
 import 'run_snapshot_store.dart';
@@ -43,6 +44,7 @@ class RunTaskHandler extends TaskHandler {
   RunStatus? _lastNotifyStatus;
   Finished? _finished;
   RunSnapshotStore? _snapshots;
+  TrialStore? _trial;
   int _lastSnapshotAt = 0;
   static const snapshotInterval = Duration(seconds: 5);
 
@@ -73,7 +75,10 @@ class RunTaskHandler extends TaskHandler {
     final dataDir = await FlutterForegroundTask.getData<String>(
       key: RunProtocol.dataDirKey,
     );
-    if (dataDir != null) _snapshots = RunSnapshotStore(dataDir);
+    if (dataDir != null) {
+      _snapshots = RunSnapshotStore(dataDir);
+      _trial = TrialStore(dataDir);
+    }
 
     final player = CuePlayer(
       settings: CuePlayerSettings(
@@ -143,8 +148,12 @@ class RunTaskHandler extends TaskHandler {
           changed = true;
           saveNeeded = true;
         case TrialCountable():
-          // 무료 체험 차감은 결제 단계에서 연결한다 (docs/02 10.2절)
-          break;
+          // 실제 진행 60초가 된 순간 무료 운동 1회 차감 (docs/02 10.2절).
+          // 운동 중에는 절대 막지 않는다. 잠금 판단은 다음 운동을 시작할 때 화면이 한다.
+          _trial?.increment().catchError((Object e) {
+            debugPrint('RunTaskHandler: 무료 횟수 저장 실패 $e');
+            return 0;
+          });
         case Finished():
           _player?.play(e.cue);
           _finished = e;

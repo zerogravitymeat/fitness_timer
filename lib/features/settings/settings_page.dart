@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../app/app_services.dart';
 import '../../models/app_settings.dart';
+import '../../models/entitlement.dart';
+import '../paywall/paywall_page.dart';
 
 /// S5 설정 (docs/03_화면_설계.md 7장). 기능 확인용 기본 UI.
 class SettingsPage extends StatefulWidget {
@@ -158,13 +161,84 @@ class _SettingsPageState extends State<SettingsPage> {
                   applicationName: 'Fitness Timer',
                 ),
               ),
-              const ListTile(
-                title: Text('정식 버전'),
-                subtitle: Text('결제 기능을 붙일 때 추가됩니다'),
-                enabled: false,
-              ),
+              const _PurchaseSection(),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+/// 설정 화면의 "정식 버전" 묶음 (docs/03 7장) + 디버그 빌드 전용 테스트 도구
+class _PurchaseSection extends StatelessWidget {
+  const _PurchaseSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final ent = AppServices.entitlement;
+    return ListenableBuilder(
+      listenable: Listenable.merge([ent, AppServices.billing]),
+      builder: (context, _) {
+        final e = ent.value;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _Group('정식 버전'),
+            ListTile(
+              title: const Text('상태'),
+              subtitle: Text(
+                e.isFull
+                    ? '정식 버전 사용 중'
+                    : e.inTrial
+                    ? '무료 운동 ${e.freeRemaining}회 남음'
+                    : '체험 종료 (프리셋은 계속 무료)',
+              ),
+            ),
+            if (!e.isFull)
+              ListTile(
+                title: const Text('정식 버전 구매'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => PaywallPage.open(context),
+              ),
+            ListTile(
+              title: const Text('구매 복원'),
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                await AppServices.billing.restore();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ent.value.isFull ? '구매를 복원했어요' : '복원할 구매 내역이 없어요',
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (kDebugMode) ...[
+              const _Group('개발용 (디버그 빌드에서만 보임)'),
+              SwitchListTile(
+                title: const Text('결제 없이 정식 버전으로 보기'),
+                value: ent.debugForceFull,
+                onChanged: ent.setDebugForceFull,
+              ),
+              ListTile(
+                title: Text(
+                  '무료 운동 사용 횟수: ${e.freeUsed} / ${Entitlement.freeWorkouts}',
+                ),
+                subtitle: Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final n in [0, 10, 14, 15])
+                      ActionChip(
+                        label: Text('$n회로'),
+                        onPressed: () => ent.setDebugFreeUsed(n),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         );
       },
     );

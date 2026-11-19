@@ -5,6 +5,7 @@ import '../../app/app_services.dart';
 import '../../engine/timer_core.dart';
 import '../../models/presets.dart';
 import '../../models/routine.dart';
+import '../../services/billing/entitlement_service.dart';
 import '../../services/run/run_client.dart';
 import '../../services/run/run_snapshot_store.dart';
 import '../../services/storage/routine_repository.dart';
@@ -12,6 +13,7 @@ import '../../services/storage/routine_store.dart';
 import '../common/routine_summary.dart';
 import '../edit/edit_page.dart';
 import '../edit/edit_rules.dart';
+import '../paywall/paywall_page.dart';
 import '../run/run_page.dart';
 import '../settings/settings_page.dart';
 
@@ -31,13 +33,20 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // 앱을 다시 열었는데 운동이 진행 중이면 진행 화면으로 (docs/03 5.5절)
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _ent.refreshTrial();
       if (await RunClient.instance.reattach()) {
         if (mounted) _openRun();
         return;
       }
       // 서비스는 없는데 진행 상태가 남아 있으면 비정상 종료 (docs/03 D1)
       final saved = await AppServices.runSnapshots.load();
-      if (saved != null && mounted) await _askResume(saved);
+      if (saved == null || !mounted) return;
+      // 체험이 끝나 잠긴 루틴이면 이어하지 않고 버린다 (docs/02 10.3절)
+      if (!_ent.value.canStart(saved.routine)) {
+        await AppServices.runSnapshots.clear();
+        return;
+      }
+      await _askResume(saved);
     });
   }
 
@@ -105,7 +114,18 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  EntitlementService get _ent => AppServices.entitlement;
+
+  /// 체험이 끝났으면 결제 화면을 띄우고, 구매하면 true (docs/02 10.3절)
+  Future<bool> _requireCustom() async {
+    if (_ent.value.canUseCustom) return true;
+    return PaywallPage.open(context);
+  }
+
   Future<void> _start(Routine r, {EngineCheckpoint? restore}) async {
+    if (!_ent.value.canStart(r) && !await PaywallPage.open(context)) return;
+    if (!mounted) return;
+    _ent.markRunStart();
     final ok = await RunClient.instance.start(
       r,
       settings: AppServices.settings.value,
@@ -128,6 +148,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _edit(Routine initial, {required bool isNew}) async {
+    if (!await _requireCustom() || !mounted) return;
     final res = await Navigator.of(context).push<EditResult>(
       MaterialPageRoute(
         builder: (_) => EditPage(initial: initial, isNew: isNew),
@@ -215,8 +236,9 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _store,
+      listenable: Listenable.merge([_store, _ent]),
       builder: (context, _) {
+        final ent = _ent.value;
         final recent = _store.recent;
         final favorites = _store.favorites;
         final mine = _store.myRoutines;
@@ -244,10 +266,21 @@ class _HomePageState extends State<HomePage> {
           body: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
             children: [
+              // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
+              if (ent.inTrial)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ActionChip(
+                    avatar: const Icon(Icons.card_giftcard, size: 18),
+                    label: Text('무료 운동 ${ent.freeRemaining}회 남음'),
+                    onPressed: () => PaywallPage.open(context),
+                  ),
+                ),
               if (recent != null) ...[
                 const _Section('최근'),
                 _RecentCard(
                   routine: recent,
+                  locked: !ent.canStart(recent),
                   onStart: () => _start(recent),
                   onMenu: () => _menu(recent),
                 ),
@@ -264,6 +297,7 @@ class _HomePageState extends State<HomePage> {
                       final r = favorites[i];
                       return _FavoriteCard(
                         routine: r,
+                        locked: !ent.canStart(r),
                         onStart: () => _start(r),
                         onMenu: () => _menu(r),
                       );
@@ -275,6 +309,7 @@ class _HomePageState extends State<HomePage> {
               for (final r in Presets.all)
                 _RoutineTile(
                   routine: r,
+                  locked: !ent.canStart(r),
                   favorite: _store.isFavorite(r.id),
                   onStart: () => _start(r),
                   onMenu: () => _menu(r),
@@ -323,6 +358,7 @@ class _HomePageState extends State<HomePage> {
                 for (final r in mine)
                   _RoutineTile(
                     routine: r,
+                    locked: !ent.canStart(r),
                     favorite: _store.isFavorite(r.id),
                     onStart: () => _start(r),
                     onMenu: () => _menu(r),
@@ -350,10 +386,14 @@ class _StartButton extends StatelessWidget {
     required this.name,
     required this.onStart,
     this.size = 44,
+    this.locked = false,
   });
   final String name;
   final VoidCallback onStart;
   final double size;
+
+  /// 체험이 끝난 내 루틴: ▶ 대신 자물쇠, 누르면 결제 화면 (docs/03 3장)
+  final bool locked;
   @override
   Widget build(BuildContext context) => SizedBox(
     width: size,
@@ -361,11 +401,15 @@ class _StartButton extends StatelessWidget {
     child: IconButton.filled(
       // ListTile이 trailing 아이콘을 회색으로 칠하므로 색을 명시한다
       style: IconButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        backgroundColor: locked
+            ? Theme.of(context).colorScheme.surfaceContainerHighest
+            : Theme.of(context).colorScheme.primary,
+        foregroundColor: locked
+            ? Theme.of(context).colorScheme.onSurfaceVariant
+            : Theme.of(context).colorScheme.onPrimary,
       ),
-      tooltip: '$name 시작',
-      icon: const Icon(Icons.play_arrow),
+      tooltip: locked ? '$name 잠김, 정식 버전에서 사용' : '$name 시작',
+      icon: Icon(locked ? Icons.lock_outline : Icons.play_arrow),
       onPressed: onStart,
     ),
   );
@@ -374,10 +418,12 @@ class _StartButton extends StatelessWidget {
 class _RecentCard extends StatelessWidget {
   const _RecentCard({
     required this.routine,
+    this.locked = false,
     required this.onStart,
     required this.onMenu,
   });
   final Routine routine;
+  final bool locked;
   final VoidCallback onStart;
   final VoidCallback onMenu;
   @override
@@ -407,7 +453,12 @@ class _RecentCard extends StatelessWidget {
                 ],
               ),
             ),
-            _StartButton(name: routine.name, onStart: onStart, size: 60),
+            _StartButton(
+              name: routine.name,
+              onStart: onStart,
+              size: 60,
+              locked: locked,
+            ),
           ],
         ),
       ),
@@ -418,10 +469,12 @@ class _RecentCard extends StatelessWidget {
 class _FavoriteCard extends StatelessWidget {
   const _FavoriteCard({
     required this.routine,
+    this.locked = false,
     required this.onStart,
     required this.onMenu,
   });
   final Routine routine;
+  final bool locked;
   final VoidCallback onStart;
   final VoidCallback onMenu;
   @override
@@ -448,7 +501,11 @@ class _FavoriteCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(child: Text(RoutineSummary.estimate(routine))),
-                  _StartButton(name: routine.name, onStart: onStart),
+                  _StartButton(
+                    name: routine.name,
+                    onStart: onStart,
+                    locked: locked,
+                  ),
                 ],
               ),
             ],
@@ -462,11 +519,13 @@ class _FavoriteCard extends StatelessWidget {
 class _RoutineTile extends StatelessWidget {
   const _RoutineTile({
     required this.routine,
+    this.locked = false,
     required this.favorite,
     required this.onStart,
     required this.onMenu,
   });
   final Routine routine;
+  final bool locked;
   final bool favorite;
   final VoidCallback onStart;
   final VoidCallback onMenu;
@@ -477,7 +536,15 @@ class _RoutineTile extends StatelessWidget {
       onLongPress: onMenu,
       title: Row(
         children: [
-          Flexible(child: Text(routine.name, overflow: TextOverflow.ellipsis)),
+          Flexible(
+            child: Text(
+              routine.name,
+              overflow: TextOverflow.ellipsis,
+              style: locked
+                  ? TextStyle(color: Theme.of(context).disabledColor)
+                  : null,
+            ),
+          ),
           if (favorite)
             const Padding(
               padding: EdgeInsets.only(left: 6),
@@ -488,7 +555,11 @@ class _RoutineTile extends StatelessWidget {
       subtitle: Text(
         '${RoutineSummary.of(routine)} · ${RoutineSummary.estimate(routine)}',
       ),
-      trailing: _StartButton(name: routine.name, onStart: onStart),
+      trailing: _StartButton(
+        name: routine.name,
+        onStart: onStart,
+        locked: locked,
+      ),
     ),
   );
 }

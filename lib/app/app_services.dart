@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:path_provider/path_provider.dart';
 
+import '../services/billing/billing_service.dart';
+import '../services/billing/entitlement_service.dart';
 import '../services/run/run_snapshot_store.dart';
 import '../services/storage/routine_repository.dart';
 import '../services/storage/routine_store.dart';
@@ -11,6 +15,8 @@ abstract final class AppServices {
   static late final RoutineStore routines;
   static late final SettingsStore settings;
   static late final RunSnapshotStore runSnapshots;
+  static late final EntitlementService entitlement;
+  static late final BillingService billing;
 
   static Future<void> init() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -18,6 +24,10 @@ abstract final class AppServices {
     routines = RoutineStore(RoutineRepository(dir));
     settings = SettingsStore(dataDir);
     runSnapshots = RunSnapshotStore(dataDir);
-    await Future.wait([routines.load(), settings.load()]);
+    entitlement = EntitlementService(dataDir);
+    billing = BillingService(entitlement);
+    await Future.wait([routines.load(), settings.load(), entitlement.load()]);
+    // 구매 내역 확인은 네트워크가 필요하므로 앱 시작을 기다리게 하지 않는다
+    unawaited(billing.init());
   }
 }
