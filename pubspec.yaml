@@ -53,6 +53,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -66,6 +68,20 @@ flutter:
   uses-material-design: true
   assets:
     - assets/sounds/
+    - assets/fonts/Pretendard-LICENSE.txt
+
+  # Pretendard (SIL Open Font License 1.1) — docs/04 4장
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -104,3 +120,27 @@ flutter:
 # jni를 쓰지 않는 2.2.x로 고정한다. 버전을 올릴 때는 실기기에서 다시 확인할 것.
 dependency_overrides:
   path_provider_android: ">=2.2.0 <2.3.0"
+
+# 앱 아이콘 (덤벨 + 타이머 링). 원본은 lib/design/app_icon_painter.dart 코드로 그린다.
+# 바꾸려면: flutter test tool/generate_app_icon_test.dart && dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/app_icon.png
+  remove_alpha_ios: true
+  adaptive_icon_background: assets/icon/adaptive_background.png
+  adaptive_icon_foreground: assets/icon/adaptive_foreground.png
+  min_sdk_android: 21
+
+# 시작 화면: 따로 보여주지 않는다. Android 12+는 시스템 시작 화면을 끌 수 없으므로
+# 앱 바탕과 같은 어두운 단색만 보여주고(아이콘 없음), 첫 화면이 그려지면 바로 홈이 나온다.
+# 바꾼 뒤: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#0B0F1A"
+  android_12:
+    color: "#0B0F1A"
+    # 시스템이 앱 아이콘을 자동으로 넣지 않도록 투명 이미지
+    image: assets/icon/splash_android12_blank.png
+  android: true
+  ios: true
+  web: false

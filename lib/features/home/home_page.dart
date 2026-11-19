@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../app/app_services.dart';
+import '../../design/tokens.dart';
 import '../../engine/timer_core.dart';
 import '../../models/presets.dart';
 import '../../models/routine.dart';
@@ -444,43 +445,58 @@ class _RecentCard extends StatelessWidget {
   final VoidCallback onStart;
   final VoidCallback onMenu;
   @override
-  Widget build(BuildContext context) => Card(
-    child: InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onMenu,
-      onLongPress: onMenu,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    routine.name,
-                    style: Theme.of(context).textTheme.titleLarge,
+  Widget build(BuildContext context) {
+    final c = _modeColors(routine);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(-1, -1),
+            radius: 1.6,
+            colors: [
+              c.c1.withValues(alpha: locked ? 0.15 : 0.55),
+              c.c1.withValues(alpha: 0),
+            ],
+          ),
+        ),
+        child: InkWell(
+          onTap: onMenu,
+          onLongPress: onMenu,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        routine.name,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(RoutineSummary.of(routine)),
+                      Text(
+                        RoutineSummary.estimate(routine),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(RoutineSummary.of(routine)),
-                  Text(
-                    RoutineSummary.estimate(routine),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
+                ),
+                _StartButton(
+                  name: routine.name,
+                  onStart: onStart,
+                  size: 60,
+                  locked: locked,
+                ),
+              ],
             ),
-            _StartButton(
-              name: routine.name,
-              onStart: onStart,
-              size: 60,
-              locked: locked,
-            ),
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _FavoriteCard extends StatelessWidget {
@@ -551,6 +567,7 @@ class _RoutineTile extends StatelessWidget {
     child: ListTile(
       onTap: onMenu,
       onLongPress: onMenu,
+      leading: _ModeBar(routine: routine, dim: locked),
       title: Row(
         children: [
           Flexible(
@@ -579,4 +596,34 @@ class _RoutineTile extends StatelessWidget {
       ),
     ),
   );
+}
+
+PhaseColors _modeColors(Routine r) =>
+    r.isReps ? PhaseColors.setRest : PhaseColors.work;
+
+/// 루틴 종류를 색으로 구분하는 작은 막대 (docs/04 시안의 홈)
+class _ModeBar extends StatelessWidget {
+  const _ModeBar({required this.routine, this.dim = false});
+  final Routine routine;
+  final bool dim;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _modeColors(routine);
+    return Opacity(
+      opacity: dim ? 0.35 : 1,
+      child: Container(
+        width: 6,
+        height: 36,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(3),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [c.c1, c.c2],
+          ),
+        ),
+      ),
+    );
+  }
 }

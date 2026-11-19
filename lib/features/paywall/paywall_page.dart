@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_services.dart';
+import '../../design/app_icon_painter.dart';
+import '../../design/glass.dart';
+import '../../design/tokens.dart';
 import '../../services/billing/billing_service.dart';
 
 /// S6 정식 버전 구매 (docs/03_화면_설계.md 7-1장). 기능 확인용 기본 UI.
@@ -93,89 +96,114 @@ class _PaywallPageState extends State<PaywallPage> {
               onPressed: () => Navigator.of(context).pop(false),
             ),
           ),
-          body: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              children: [
-                Text(
-                  'Fitness Timer 정식 버전',
-                  textAlign: TextAlign.center,
-                  style: text.headlineSmall,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '한 번 구매로 평생 사용',
-                  textAlign: TextAlign.center,
-                  style: text.titleMedium,
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
+          body: AuroraBackground(
+            child: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                children: [
+                  const SizedBox(height: 8),
+                  const Center(child: AppIconMark(size: 104)),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Fitness Timer 정식 버전',
+                    textAlign: TextAlign.center,
+                    style: text.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '한 번 구매로 평생 사용',
+                    textAlign: TextAlign.center,
+                    style: text.titleMedium,
+                  ),
+                  const SizedBox(height: 24),
+                  GlassPanel(
+                    blur: true,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Column(
                       children: const [
                         ListTile(
-                          leading: Icon(Icons.check),
+                          leading: Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.white,
+                          ),
                           title: Text('내 루틴 무제한 만들기·실행'),
                         ),
                         ListTile(
-                          leading: Icon(Icons.check),
+                          leading: Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.white,
+                          ),
                           title: Text('횟수 모드·템포 직접 설정'),
                         ),
                         ListTile(
-                          leading: Icon(Icons.check),
+                          leading: Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.white,
+                          ),
                           title: Text('광고 없음, 구독 없음'),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                  ),
-                  // 가격은 Google Play에서 받아온 현지 가격 (docs/03 S6)
-                  onPressed: _busy || !_billing.canBuy ? null : _buy,
-                  child: _busy
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          price == null ? '구매하기' : '$price 구매하기',
-                          style: const TextStyle(fontSize: 17),
-                        ),
-                ),
-                if (!_billing.canBuy && !_busy)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      _billing.storeAvailable
-                          ? '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
-                          : '인터넷에 연결한 뒤 다시 시도해 주세요',
-                      textAlign: TextAlign.center,
-                      style: text.bodySmall,
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    // 주요 버튼은 거의 불투명한 흰색 (docs/04 1장)
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                      backgroundColor: Colors.white.withValues(alpha: 0.92),
+                      foregroundColor: const Color(0xFF14161F),
+                      disabledBackgroundColor: Colors.white.withValues(
+                        alpha: 0.12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w700),
                     ),
+                    // 가격은 Google Play에서 받아온 현지 가격 (docs/03 S6)
+                    onPressed: _busy || !_billing.canBuy ? null : _buy,
+                    child: _busy
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            price == null ? '구매하기' : '$price 구매하기',
+                            style: const TextStyle(fontSize: 17),
+                          ),
                   ),
-                if (_message != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(_message!, textAlign: TextAlign.center),
+                  if (!_billing.canBuy && !_busy)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        _billing.storeAvailable
+                            ? '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+                            : '인터넷에 연결한 뒤 다시 시도해 주세요',
+                        textAlign: TextAlign.center,
+                        style: text.bodySmall,
+                      ),
+                    ),
+                  if (_message != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(_message!, textAlign: TextAlign.center),
+                    ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _busy ? null : _restore,
+                    child: const Text('구매 복원'),
                   ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _busy ? null : _restore,
-                  child: const Text('구매 복원'),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '프리셋 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.',
-                  textAlign: TextAlign.center,
-                  style: text.bodySmall,
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    '프리셋 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.',
+                    textAlign: TextAlign.center,
+                    style: text.bodySmall,
+                  ),
+                ],
+              ),
             ),
           ),
         );

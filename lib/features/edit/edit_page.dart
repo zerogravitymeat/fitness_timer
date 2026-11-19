@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../design/glass.dart';
+import '../../design/tokens.dart';
 import '../../models/routine.dart';
 import '../common/routine_summary.dart';
 import 'edit_rules.dart';
@@ -131,176 +133,212 @@ class _EditPageState extends State<EditPage> {
       child: Scaffold(
         appBar: AppBar(title: Text(widget.isNew ? '새 루틴' : '루틴 편집')),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
-            TextField(
-              controller: _name,
-              maxLength: RoutineLimits.maxNameLength,
-              decoration: InputDecoration(
-                labelText: '이름',
-                errorText: nameOk ? null : '이름을 입력해 주세요',
+            _card([
+              TextField(
+                controller: _name,
+                maxLength: RoutineLimits.maxNameLength,
+                decoration: InputDecoration(
+                  labelText: '이름',
+                  errorText: nameOk ? null : '이름을 입력해 주세요',
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            const _Label('운동 방식'),
-            SegmentedButton<EndCondition>(
-              segments: const [
-                ButtonSegment(
-                  value: EndCondition.time,
-                  label: Text('시간'),
-                  icon: Icon(Icons.timer_outlined),
-                ),
-                ButtonSegment(
-                  value: EndCondition.reps,
-                  label: Text('횟수'),
-                  icon: Icon(Icons.repeat),
-                ),
-              ],
-              selected: {r.endCondition},
-              onSelectionChanged: (s) => _switchMode(s.first),
-            ),
-            const SizedBox(height: 12),
-            _TimeStepper(
-              label: '준비',
-              ms: r.prepMs,
-              min: 0,
-              max: RoutineLimits.maxPrepMs,
-              onChanged: (v) => _set(r.copyWith(prepMs: v)),
-            ),
-            if (!reps)
+              const SizedBox(height: 8),
+              const _Label('운동 방식'),
+              SegmentedButton<EndCondition>(
+                segments: const [
+                  ButtonSegment(
+                    value: EndCondition.time,
+                    label: Text('시간'),
+                    icon: Icon(Icons.timer_outlined),
+                  ),
+                  ButtonSegment(
+                    value: EndCondition.reps,
+                    label: Text('횟수'),
+                    icon: Icon(Icons.repeat),
+                  ),
+                ],
+                selected: {r.endCondition},
+                onSelectionChanged: (s) => _switchMode(s.first),
+              ),
+              const SizedBox(height: 8),
+            ]),
+            _card([
               _TimeStepper(
-                label: '운동',
-                ms: r.workMs,
-                min: RoutineLimits.minWorkMs,
-                max: RoutineLimits.maxWorkMs,
-                onChanged: (v) => _set(r.copyWith(workMs: v)),
-              )
-            else ...[
-              _IntStepper(
-                label: '목표 횟수',
-                value: r.targetReps,
-                unit: '회',
-                min: 1,
-                max: RoutineLimits.maxReps,
-                onChanged: (v) => _set(r.copyWith(targetReps: v)),
+                label: '준비',
+                ms: r.prepMs,
+                min: 0,
+                max: RoutineLimits.maxPrepMs,
+                onChanged: (v) => _set(r.copyWith(prepMs: v)),
               ),
-              _tempoEditor(r),
-            ],
-            _TimeStepper(
-              label: reps ? '세트 간 휴식' : '휴식',
-              ms: r.restMs,
-              min: 0,
-              max: RoutineLimits.maxRestMs,
-              onChanged: (v) => _set(r.copyWith(restMs: v)),
-            ),
-            _IntStepper(
-              label: reps ? '세트' : '라운드',
-              value: r.rounds,
-              min: 1,
-              max: RoutineLimits.maxRounds,
-              onChanged: (v) => _set(r.copyWith(rounds: v)),
-            ),
-            if (!reps) ...[
-              _IntStepper(
-                label: '세트',
-                value: r.sets,
-                min: 1,
-                max: RoutineLimits.maxSets,
-                onChanged: (v) => _set(r.copyWith(sets: v)),
-              ),
-              if (r.sets > 1)
+              if (!reps)
                 _TimeStepper(
-                  label: '세트 간 휴식',
-                  ms: r.setRestMs,
-                  min: 0,
-                  max: RoutineLimits.maxSetRestMs,
-                  onChanged: (v) => _set(r.copyWith(setRestMs: v)),
+                  label: '운동',
+                  ms: r.workMs,
+                  min: RoutineLimits.minWorkMs,
+                  max: RoutineLimits.maxWorkMs,
+                  onChanged: (v) => _set(r.copyWith(workMs: v)),
+                )
+              else ...[
+                _IntStepper(
+                  label: '목표 횟수',
+                  value: r.targetReps,
+                  unit: '회',
+                  min: 1,
+                  max: RoutineLimits.maxReps,
+                  onChanged: (v) => _set(r.copyWith(targetReps: v)),
                 ),
-            ],
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: const Text('더 보기'),
-              children: [
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(reps ? '마지막 세트 휴식 건너뛰기' : '마지막 라운드 휴식 건너뛰기'),
-                  value: r.skipLastRest,
-                  onChanged: (v) => _set(r.copyWith(skipLastRest: v)),
+                _tempoEditor(r),
+              ],
+              _TimeStepper(
+                label: reps ? '세트 간 휴식' : '휴식',
+                ms: r.restMs,
+                min: 0,
+                max: RoutineLimits.maxRestMs,
+                onChanged: (v) => _set(r.copyWith(restMs: v)),
+              ),
+              _IntStepper(
+                label: reps ? '세트' : '라운드',
+                value: r.rounds,
+                min: 1,
+                max: RoutineLimits.maxRounds,
+                onChanged: (v) => _set(r.copyWith(rounds: v)),
+              ),
+              if (!reps) ...[
+                _IntStepper(
+                  label: '세트',
+                  value: r.sets,
+                  min: 1,
+                  max: RoutineLimits.maxSets,
+                  onChanged: (v) => _set(r.copyWith(sets: v)),
                 ),
-                if (reps)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('음성 안내 방식'),
-                    trailing: DropdownButton<CueStyle>(
-                      value: r.cueStyle,
-                      onChanged: (v) =>
-                          v == null ? null : _set(r.copyWith(cueStyle: v)),
-                      items: [
-                        const DropdownMenuItem(
-                          value: CueStyle.numbersOnly,
-                          child: Text('숫자만'),
-                        ),
-                        DropdownMenuItem(
-                          value: CueStyle.actionAndNumbers,
-                          enabled: EditRules.actionCueAllowed(r.tempo),
-                          child: Text(
-                            EditRules.actionCueAllowed(r.tempo)
-                                ? '동작 + 숫자'
-                                : '동작 + 숫자 (1회 2.5초 이상)',
-                          ),
-                        ),
-                        const DropdownMenuItem(
-                          value: CueStyle.beepOnly,
-                          child: Text('비프만'),
-                        ),
-                      ],
-                    ),
+                if (r.sets > 1)
+                  _TimeStepper(
+                    label: '세트 간 휴식',
+                    ms: r.setRestMs,
+                    min: 0,
+                    max: RoutineLimits.maxSetRestMs,
+                    onChanged: (v) => _set(r.copyWith(setRestMs: v)),
                   ),
               ],
-            ),
+            ]),
+            _card([
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                shape: const Border(),
+                collapsedShape: const Border(),
+                title: const Text('더 보기'),
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(reps ? '마지막 세트 휴식 건너뛰기' : '마지막 라운드 휴식 건너뛰기'),
+                    value: r.skipLastRest,
+                    onChanged: (v) => _set(r.copyWith(skipLastRest: v)),
+                  ),
+                  if (reps)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('음성 안내 방식'),
+                      trailing: DropdownButton<CueStyle>(
+                        value: r.cueStyle,
+                        onChanged: (v) =>
+                            v == null ? null : _set(r.copyWith(cueStyle: v)),
+                        items: [
+                          const DropdownMenuItem(
+                            value: CueStyle.numbersOnly,
+                            child: Text('숫자만'),
+                          ),
+                          DropdownMenuItem(
+                            value: CueStyle.actionAndNumbers,
+                            enabled: EditRules.actionCueAllowed(r.tempo),
+                            child: Text(
+                              EditRules.actionCueAllowed(r.tempo)
+                                  ? '동작 + 숫자'
+                                  : '동작 + 숫자 (1회 2.5초 이상)',
+                            ),
+                          ),
+                          const DropdownMenuItem(
+                            value: CueStyle.beepOnly,
+                            child: Text('비프만'),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ]),
           ],
         ),
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '예상 시간 ${RoutineSummary.estimate(r)}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                        ),
-                        onPressed: nameOk ? () => _finish(start: false) : null,
-                        child: const Text('저장'),
-                      ),
+        // 하단 고정: 예상 시간 + 저장 (유리 바)
+        bottomNavigationBar: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.bgBase.withValues(alpha: 0.72),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '예상 시간 ${RoutineSummary.estimate(r)}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: tabularFigures,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                          ),
+                          onPressed: nameOk
+                              ? () => _finish(start: false)
+                              : null,
+                          child: const Text('저장'),
                         ),
-                        onPressed: nameOk ? () => _finish(start: true) : null,
-                        child: const Text('저장 후 시작'),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                          ),
+                          onPressed: nameOk ? () => _finish(start: true) : null,
+                          child: const Text('저장 후 시작'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+  /// 입력 묶음 하나를 약한 유리 카드로 (블러 없음: 스크롤 목록, docs/04 3장)
+  Widget _card(List<Widget> children) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: GlassPanel(
+      level: GlassLevel.subtle,
+      radius: 20,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    ),
+  );
 
   Widget _tempoEditor(Routine r) {
     final selected = _customTempo
@@ -504,7 +542,14 @@ class _RepeatButtonState extends State<_RepeatButton> {
           )
         : null,
     onLongPressEnd: (_) => _stop(),
-    child: IconButton.filledTonal(
+    child: IconButton.filled(
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: 0.10),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: Colors.white.withValues(alpha: 0.04),
+        disabledForegroundColor: Colors.white.withValues(alpha: 0.25),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+      ),
       tooltip: widget.tooltip,
       icon: Icon(widget.icon),
       onPressed: widget.enabled ? widget.onStep : null,

@@ -3,6 +3,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../app/app_services.dart';
+import '../../design/glass.dart';
+import '../../design/tokens.dart';
 import '../../engine/segment.dart';
 import '../../models/entitlement.dart';
 import '../../engine/tempo_clock.dart';
@@ -81,17 +83,6 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     if (ok == true) _client.send(RunProtocol.cmdStop);
   }
 
-  Color _color(SegmentType? t, RunStatus s) {
-    if (s == RunStatus.paused) return const Color(0xFF4B5468);
-    return switch (t) {
-      SegmentType.prep => const Color(0xFFB7832F),
-      SegmentType.work => const Color(0xFFC2434F),
-      SegmentType.rest => const Color(0xFF178A72),
-      SegmentType.setRest => const Color(0xFF4A57C7),
-      null => const Color(0xFF6B4BC7),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final v = _client.view;
@@ -124,6 +115,11 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
         v.segmentType == SegmentType.rest ||
         v.segmentType == SegmentType.setRest;
     final segName = RunLabels.segment(v.segmentType, isReps: v.isReps);
+    final colors = PhaseColors.of(
+      v.segmentType,
+      isReps: v.isReps,
+      paused: paused,
+    );
 
     return PopScope(
       canPop: false,
@@ -131,26 +127,31 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
         if (!didPop) _confirmStop(); // 뒤로 가기 → 일시정지 + 확인 (docs/03 5.4절)
       },
       child: Scaffold(
-        backgroundColor: _color(v.segmentType, v.status),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: LayoutBuilder(
-              builder: (context, c) => c.maxWidth > c.maxHeight
-                  ? _landscape(
-                      v,
-                      c,
-                      paused: paused,
-                      isRest: isRest,
-                      segName: segName,
-                    )
-                  : _portrait(
-                      v,
-                      c,
-                      paused: paused,
-                      isRest: isRest,
-                      segName: segName,
-                    ),
+        // 어두운 바탕 + 구간 색 빛 번짐, 구간이 바뀌면 600ms 동안 서서히 (docs/04 2.3절)
+        body: PhaseBackground(
+          colors: colors,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: LayoutBuilder(
+                builder: (context, c) => c.maxWidth > c.maxHeight
+                    ? _landscape(
+                        v,
+                        c,
+                        paused: paused,
+                        isRest: isRest,
+                        segName: segName,
+                        glow: colors.c1,
+                      )
+                    : _portrait(
+                        v,
+                        c,
+                        paused: paused,
+                        isRest: isRest,
+                        segName: segName,
+                        glow: colors.c1,
+                      ),
+              ),
             ),
           ),
         ),
@@ -165,6 +166,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     required bool paused,
     required bool isRest,
     required String segName,
+    required Color glow,
   }) {
     return Column(
       children: [
@@ -177,7 +179,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
           children: [
             Expanded(flex: 10, child: _prevButton()),
             const SizedBox(width: 14),
-            Expanded(flex: 14, child: _pauseButton(paused)),
+            Expanded(flex: 14, child: _pauseButton(paused, glow: glow)),
             const SizedBox(width: 14),
             Expanded(flex: 10, child: _nextButton(v)),
           ],
@@ -194,6 +196,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     required bool paused,
     required bool isRest,
     required String segName,
+    required Color glow,
   }) {
     final infoWidth = c.maxWidth * 0.68;
     return Row(
@@ -219,7 +222,10 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
               if (isRest) _addRestButton(),
               Expanded(child: _prevButton(height: null)),
               const SizedBox(height: 10),
-              Expanded(flex: 2, child: _pauseButton(paused, height: null)),
+              Expanded(
+                flex: 2,
+                child: _pauseButton(paused, height: null, glow: glow),
+              ),
               const SizedBox(height: 10),
               Expanded(child: _nextButton(v, height: null)),
               if (paused) _stopButton(),
@@ -240,77 +246,113 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
 
   Widget _title(RunView v) => Text(
     v.routineName,
-    style: const TextStyle(color: Colors.white70, fontSize: 17),
+    style: TextStyle(
+      color: Colors.white.withValues(alpha: 0.88),
+      fontSize: 17,
+      fontWeight: FontWeight.w500,
+    ),
   );
 
   Widget _info(RunView v, {required bool paused, required String segName}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          paused ? '일시정지' : (v.isRepWork ? _phaseLabel(v.tempoPhase) : segName),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
+        GlassPill(
+          child: Text(
+            paused
+                ? '일시정지'
+                : (v.isRepWork ? _phaseLabel(v.tempoPhase) : segName),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         if (v.isRepWork) _RepCounter(v: v) else _TimeDisplay(v: v),
         const SizedBox(height: 20),
         if (v.isRepWork) _TempoBar(v: v) else _ProgressBar(v: v),
         const SizedBox(height: 24),
-        Text(
-          '${v.isRepWork ? '$segName · ' : ''}${RunLabels.progress(v)}',
-          style: const TextStyle(color: Colors.white, fontSize: 17),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          RunLabels.next(v),
-          style: const TextStyle(color: Colors.white70, fontSize: 15),
-        ),
-        Text(
-          '전체 남은 시간 ${RunLabels.clock(v.remainingTotalMs)}',
-          style: const TextStyle(color: Colors.white70, fontSize: 15),
+        // 작은 글자는 반드시 유리 패널 안에 둔다 (밝은 빛 위 대비, docs/04 6장)
+        GlassPanel(
+          blur: true,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '${v.isRepWork ? '$segName · ' : ''}${RunLabels.progress(v)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Divider(
+                  height: 1,
+                  color: Colors.white.withValues(alpha: 0.16),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(child: Text(RunLabels.next(v), style: _subStyle)),
+                  Text(
+                    '전체 ${RunLabels.clock(v.remainingTotalMs)}',
+                    style: _subStyle,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
+  static final _subStyle = TextStyle(
+    color: Colors.white.withValues(alpha: 0.86),
+    fontSize: 14,
+    fontFeatures: tabularFigures,
+  );
+
   Widget _addRestButton() => Padding(
     padding: const EdgeInsets.only(bottom: 12),
-    child: OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
-        side: const BorderSide(color: Colors.white54),
-        minimumSize: const Size(140, 48),
+    child: Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () => _client.send(RunProtocol.cmdAddRest, 10000),
+        child: const GlassPill(
+          child: Text('+10초', style: TextStyle(fontSize: 16, letterSpacing: 0)),
+        ),
       ),
-      onPressed: () => _client.send(RunProtocol.cmdAddRest, 10000),
-      child: const Text('+10초', style: TextStyle(fontSize: 16)),
     ),
   );
 
-  Widget _prevButton({double? height = 76}) => _BigButton(
+  Widget _prevButton({double? height = 76}) => GlassButton(
     height: height,
-    icon: Icons.skip_previous,
+    icon: Icons.skip_previous_rounded,
     label: '이전',
-    onTap: () => _client.send(RunProtocol.cmdPrev),
+    onPressed: () => _client.send(RunProtocol.cmdPrev),
   );
 
-  Widget _pauseButton(bool paused, {double? height = 76}) => _BigButton(
+  Widget _pauseButton(
+    bool paused, {
+    double? height = 76,
+    required Color glow,
+  }) => GlassButton(
     height: height,
     primary: true,
-    icon: paused ? Icons.play_arrow : Icons.pause,
+    glowColor: glow,
+    icon: paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
     label: paused ? '재개' : '일시정지',
-    onTap: () =>
+    onPressed: () =>
         _client.send(paused ? RunProtocol.cmdResume : RunProtocol.cmdPause),
   );
 
-  Widget _nextButton(RunView v, {double? height = 76}) => _BigButton(
+  Widget _nextButton(RunView v, {double? height = 76}) => GlassButton(
     height: height,
-    icon: v.isRepWork ? Icons.check : Icons.skip_next,
+    icon: v.isRepWork ? Icons.check_rounded : Icons.skip_next_rounded,
     label: v.isRepWork ? '세트 완료' : '다음',
-    onTap: () => _client.send(RunProtocol.cmdNext),
+    onPressed: () => _client.send(RunProtocol.cmdNext),
   );
 
   /// 실수로 끝나지 않게 일시정지했을 때만 보인다 (docs/03 5.4절)
@@ -319,7 +361,10 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     child: TextButton(
       style: TextButton.styleFrom(foregroundColor: Colors.white),
       onPressed: _confirmStop,
-      child: const Text('운동 끝내기', style: TextStyle(fontSize: 16)),
+      child: const Text(
+        '운동 끝내기',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
     ),
   );
 
@@ -331,6 +376,18 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
   };
 }
 
+/// 큰 숫자: 고정폭 + 옅은 그림자 (밝은 빛 위에서도 또렷하게, docs/04 5장)
+const _bigNumberStyle = TextStyle(
+  color: Colors.white,
+  fontWeight: FontWeight.w600,
+  letterSpacing: -4,
+  height: 1.05,
+  fontFeatures: tabularFigures,
+  shadows: [
+    Shadow(color: Color(0x40000000), blurRadius: 30, offset: Offset(0, 4)),
+  ],
+);
+
 class _TimeDisplay extends StatelessWidget {
   const _TimeDisplay({required this.v});
   final RunView v;
@@ -339,12 +396,7 @@ class _TimeDisplay extends StatelessWidget {
   Widget build(BuildContext context) => FittedBox(
     child: Text(
       RunLabels.clock(v.segmentRemainingMs),
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 140,
-        fontWeight: FontWeight.w600,
-        fontFeatures: [FontFeature.tabularFigures()],
-      ),
+      style: _bigNumberStyle.copyWith(fontSize: 132),
     ),
   );
 }
@@ -361,18 +413,15 @@ class _RepCounter extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: [
-          Text(
-            '$current',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 168,
-              fontWeight: FontWeight.w600,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
+          Text('$current', style: _bigNumberStyle.copyWith(fontSize: 168)),
           Text(
             ' / ${v.targetReps}',
-            style: const TextStyle(color: Colors.white70, fontSize: 40),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 40,
+              fontWeight: FontWeight.w500,
+              fontFeatures: tabularFigures,
+            ),
           ),
         ],
       ),
@@ -380,22 +429,37 @@ class _RepCounter extends StatelessWidget {
   }
 }
 
+/// 구간 진행 바: 흰색 채움 + 반투명 트랙
 class _ProgressBar extends StatelessWidget {
   const _ProgressBar({required this.v});
   final RunView v;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(8),
-    child: LinearProgressIndicator(
-      minHeight: 12,
-      value: v.segmentDurationMs == 0
-          ? 0
-          : v.segmentElapsedMs / v.segmentDurationMs,
-      color: Colors.white,
-      backgroundColor: Colors.white24,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final f = v.segmentDurationMs == 0
+        ? 0.0
+        : (v.segmentElapsedMs / v.segmentDurationMs).clamp(0.0, 1.0);
+    return Container(
+      height: 12,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.white.withValues(alpha: 0.14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      alignment: Alignment.centerLeft,
+      child: FractionallySizedBox(
+        widthFactor: f,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: LinearGradient(
+              colors: [Colors.white, Colors.white.withValues(alpha: 0.75)],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// 1회 동작 안에서 지금 위치 (docs/03 5.2절)
@@ -407,26 +471,54 @@ class _TempoBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final down = v.tempoDownMs!, hold = v.tempoHoldMs!, up = v.tempoUpMs!;
     final total = down + hold + up;
-    final pos = (v.repElapsedMs ?? 0) / total;
-    Widget part(int ms, String label) => Expanded(
-      flex: ms,
-      child: Column(
-        children: [
-          Container(
-            height: 16,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(6),
+    final elapsed = v.repElapsedMs ?? 0;
+    final pos = elapsed / total;
+    Widget part(int start, int ms, String label, BorderRadius r) {
+      final fill = ((elapsed - start) / ms).clamp(0.0, 1.0);
+      return Expanded(
+        flex: ms,
+        child: Column(
+          children: [
+            Container(
+              height: 16,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.14),
+                borderRadius: r,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              ),
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: fill,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    borderRadius: r,
+                  ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-        ],
-      ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.86),
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    const left = BorderRadius.horizontal(
+      left: Radius.circular(999),
+      right: Radius.circular(6),
+    );
+    const mid = BorderRadius.all(Radius.circular(6));
+    const right = BorderRadius.horizontal(
+      left: Radius.circular(6),
+      right: Radius.circular(999),
     );
     return LayoutBuilder(
       builder: (context, c) => Stack(
@@ -434,9 +526,9 @@ class _TempoBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              part(down, '내려가기 ${RunLabels.duration(down)}'),
-              if (hold > 0) part(hold, '멈춤'),
-              part(up, '올라오기 ${RunLabels.duration(up)}'),
+              part(0, down, '내려가기 ${RunLabels.duration(down)}', left),
+              if (hold > 0) part(down, hold, '멈춤', mid),
+              part(down + hold, up, '올라오기 ${RunLabels.duration(up)}', right),
             ],
           ),
           Positioned(
@@ -448,6 +540,9 @@ class _TempoBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(3),
+                boxShadow: const [
+                  BoxShadow(color: Color(0xCCFFFFFF), blurRadius: 12),
+                ],
               ),
             ),
           ),
@@ -455,45 +550,6 @@ class _TempoBar extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BigButton extends StatelessWidget {
-  const _BigButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.primary = false,
-    this.height = 76,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool primary;
-
-  /// null이면 부모가 준 높이를 채운다 (가로 배치). 기본 76dp (docs/03 2.2절: 72dp 이상)
-  final double? height;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: height,
-    width: double.infinity,
-    child: FilledButton(
-      style: FilledButton.styleFrom(
-        backgroundColor: primary ? Colors.white : Colors.white24,
-        foregroundColor: primary ? Colors.black87 : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        padding: EdgeInsets.zero,
-      ),
-      onPressed: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 26),
-          Text(label, style: const TextStyle(fontSize: 13)),
-        ],
-      ),
-    ),
-  );
 }
 
 /// 결과 화면 (docs/03 6장)
@@ -517,60 +573,137 @@ class _ResultPageState extends State<ResultPage> {
   Widget build(BuildContext context) {
     final result = widget.result;
     final v = result.lastView;
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const Spacer(),
-              Text(
-                result.stopped ? '운동 종료' : '운동 완료!',
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+    final done = !result.stopped;
+    final content = SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Spacer(),
+            // 완료: 체크, 중단: 깃발 (유리 원)
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: GlassLevel.strong.fill),
+                border: Border.all(
+                  color: Colors.white.withValues(
+                    alpha: GlassLevel.strong.border,
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(result.routineName, style: const TextStyle(fontSize: 18)),
-              const SizedBox(height: 24),
-              Text(
-                '총 시간  ${RunLabels.elapsed(result.totalActiveMs)}',
-                style: const TextStyle(fontSize: 20),
+              child: Icon(
+                done ? Icons.check_rounded : Icons.flag_rounded,
+                size: 52,
+                color: Colors.white,
               ),
-              if (!result.stopped)
-                Text(
-                  v.isReps
-                      ? '완료한 세트  ${v.rounds} / ${v.rounds}'
-                      : RunLabels.progress(v),
-                  style: const TextStyle(fontSize: 20),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              done ? '운동 완료!' : '운동 종료',
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              result.routineName,
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.white.withValues(alpha: 0.86),
+              ),
+            ),
+            const SizedBox(height: 28),
+            GlassPanel(
+              blur: true,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              child: Column(
+                children: [
+                  _StatRow(
+                    label: '총 시간',
+                    value: RunLabels.elapsed(result.totalActiveMs),
+                  ),
+                  if (done) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(
+                        height: 1,
+                        color: Colors.white.withValues(alpha: 0.16),
+                      ),
+                    ),
+                    _StatRow(
+                      label: v.isReps ? '완료한 세트' : '진행',
+                      value: v.isReps
+                          ? '${v.rounds} / ${v.rounds}'
+                          : RunLabels.progress(v),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Spacer(),
+            // 체험 안내 (docs/02 10.4절, docs/03 6장)
+            ListenableBuilder(
+              listenable: AppServices.entitlement,
+              builder: (context, _) => _TrialNotice(
+                notice: AppServices.entitlement.noticeAfterRun(),
+                remaining: AppServices.entitlement.value.freeRemaining,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(56),
+                backgroundColor: Colors.white.withValues(alpha: 0.92),
+                foregroundColor: const Color(0xFF14161F),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
-              const Spacer(),
-              // 체험 안내 (docs/02 10.4절, docs/03 6장)
-              ListenableBuilder(
-                listenable: AppServices.entitlement,
-                builder: (context, _) => _TrialNotice(
-                  notice: AppServices.entitlement.noticeAfterRun(),
-                  remaining: AppServices.entitlement.value.freeRemaining,
+                textStyle: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 12),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(56),
-                ),
-                onPressed: () {
-                  RunClient.instance.clearResult();
-                  Navigator.of(context).pop();
-                },
-                child: const Text('홈으로'),
-              ),
-            ],
-          ),
+              onPressed: () {
+                RunClient.instance.clearResult();
+                Navigator.of(context).pop();
+              },
+              child: const Text('홈으로'),
+            ),
+          ],
         ),
       ),
     );
+    // 끝까지 했으면 Aurora 배경 (docs/04 2.2절 완료)
+    return Scaffold(body: done ? AuroraBackground(child: content) : content);
   }
+}
+
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.label, required this.value});
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.white.withValues(alpha: 0.8),
+          ),
+        ),
+      ),
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          fontFeatures: tabularFigures,
+        ),
+      ),
+    ],
+  );
 }
 
 class _TrialNotice extends StatelessWidget {
@@ -589,25 +722,23 @@ class _TrialNotice extends StatelessWidget {
           child: Text('무료 운동 $remaining회 남았어요 · 정식 버전 보기'),
         );
       case TrialNotice.ended:
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '무료 체험을 모두 사용했어요',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 6),
-                const Text('프리셋 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.'),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () => PaywallPage.open(context),
-                  child: const Text('정식 버전 보기'),
-                ),
-              ],
-            ),
+        return GlassPanel(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '무료 체험을 모두 사용했어요',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 6),
+              const Text('프리셋 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.'),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => PaywallPage.open(context),
+                child: const Text('정식 버전 보기'),
+              ),
+            ],
           ),
         );
     }
