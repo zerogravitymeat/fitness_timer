@@ -59,26 +59,39 @@ class CuePlayer {
   /// [soundDir]은 메인 isolate가 [SoundFiles.prepare]로 복사해 둔 폴더.
   Future<void> init({required String? soundDir}) async {
     await AudioPlayer.global.setAudioContext(_beepContext);
-    final loaded = <String, AudioPool>{};
-    for (final e in _files.entries) {
-      if (soundDir == null) break;
-      try {
-        // AssetSource는 내부에서 path_provider를 써서 서비스 isolate에서 실패한다
-        final pool = loaded[e.value] ??= await AudioPool.create(
-          source: DeviceFileSource('$soundDir/${e.value}'),
-          maxPlayers: 3,
-          playerMode: PlayerMode.lowLatency,
-          audioContext: _beepContext,
-        ).timeout(const Duration(seconds: 3));
-        _pools[e.key] = pool;
-      } catch (err) {
-        // 소리 하나를 못 불러와도 타이머는 계속 진행한다
-        debugPrint('CuePlayer: ${e.value} 로딩 실패 $err');
+    // 소리 파일은 동시에 불러온다. 하나씩 기다리면 최악의 경우 시간이 쌓여
+    // 화면이 시작 실패로 판단할 수 있다.
+    if (soundDir != null) {
+      final files = _files.values.toSet();
+      final pools = await Future.wait([
+        for (final f in files)
+          AudioPool.create(
+                // AssetSource는 내부에서 path_provider를 써서 서비스 isolate에서 실패한다
+                source: DeviceFileSource('$soundDir/$f'),
+                maxPlayers: 3,
+                playerMode: PlayerMode.lowLatency,
+                audioContext: _beepContext,
+              )
+              .then<AudioPool?>((p) => p)
+              .timeout(const Duration(seconds: 3))
+              .catchError((Object err) {
+                // 소리 하나를 못 불러와도 타이머는 계속 진행한다
+                debugPrint('CuePlayer: $f 로딩 실패 $err');
+                return null;
+              }),
+      ]);
+      final byFile = Map.fromIterables(files, pools);
+      for (final e in _files.entries) {
+        final p = byFile[e.value];
+        if (p != null) _pools[e.key] = p;
       }
     }
     try {
       final tts = FlutterTts();
-      final available = await tts.isLanguageAvailable('ko-KR');
+      // 일부 기기에서 TTS 엔진 응답이 늦거나 오지 않을 수 있다
+      final available = await tts
+          .isLanguageAvailable('ko-KR')
+          .timeout(const Duration(seconds: 3));
       await tts.setLanguage('ko-KR');
       await tts.setSpeechRate(settings.speechRate);
       await tts.setQueueMode(0); // flush: 새 안내가 이전 안내를 끊는다
@@ -89,7 +102,9 @@ class CuePlayer {
       _ttsReady = false; // 음성 없이 비프·진동만으로 진행 (docs/02 6.4절)
     }
 
-    _hasVibrator = await Vibration.hasVibrator();
+    _hasVibrator = await Vibration.hasVibrator()
+        .timeout(const Duration(seconds: 1))
+        .catchError((Object _) => false);
   }
 
   void play(Cue cue) {

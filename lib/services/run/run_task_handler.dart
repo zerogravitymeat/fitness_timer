@@ -150,6 +150,9 @@ class RunTaskHandler extends TaskHandler {
         case TrialCountable():
           // 실제 진행 60초가 된 순간 무료 운동 1회 차감 (docs/02 10.2절).
           // 운동 중에는 절대 막지 않는다. 잠금 판단은 다음 운동을 시작할 때 화면이 한다.
+          // 차감했다는 사실을 바로 저장한다. 5초 주기 저장을 기다리다 앱이 죽으면
+          // 이어하기 때 같은 운동이 한 번 더 차감된다.
+          saveNeeded = true;
           _trial?.increment().catchError((Object e) {
             debugPrint('RunTaskHandler: 무료 횟수 저장 실패 $e');
             return 0;
@@ -180,15 +183,22 @@ class RunTaskHandler extends TaskHandler {
       _snapshots?.clear();
       _ticker!.cancel();
       _ticker = null;
-      FlutterForegroundTask.sendDataToMain({
-        'type': RunProtocol.finished,
-        'totalActiveMs': _finished!.totalActiveMs,
-        'stopped': _finished!.stopped,
-        'routineName': core.routine.name,
-        'view': RunView.from(core).toMap(),
-      });
+      _sendFinished();
       _stopTimer = Timer(finishLinger, FlutterForegroundTask.stopService);
     }
+  }
+
+  void _sendFinished() {
+    final core = _core;
+    final f = _finished;
+    if (core == null || f == null) return;
+    FlutterForegroundTask.sendDataToMain({
+      'type': RunProtocol.finished,
+      'totalActiveMs': f.totalActiveMs,
+      'stopped': f.stopped,
+      'routineName': core.routine.name,
+      'view': RunView.from(core).toMap(),
+    });
   }
 
   void _sendView() {
@@ -246,7 +256,13 @@ class RunTaskHandler extends TaskHandler {
       case RunProtocol.cmdStop:
         _handle(core.stop());
       case RunProtocol.cmdView:
-        _sendView();
+        // 운동이 끝나고 서비스가 내려가기 전(4초)에 앱을 다시 열면 결과를 다시 보낸다.
+        // 그러지 않으면 진행 화면이 끝난 상태로 멈춰 있게 된다.
+        if (_finished != null) {
+          _sendFinished();
+        } else {
+          _sendView();
+        }
         return;
     }
     _saveSnapshot();

@@ -47,9 +47,12 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  bool _resultShown = false;
+
   void _onClient() {
     final result = _client.result;
-    if (result != null && mounted) {
+    if (result != null && mounted && !_resultShown) {
+      _resultShown = true;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => ResultPage(result: result)),
       );
@@ -104,7 +107,11 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
               const Text('타이머를 시작하지 못했어요', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  // 뒤늦게 시작된 서비스가 화면 없이 혼자 소리를 내지 않게 내린다
+                  _client.cancel();
+                  Navigator.of(context).pop();
+                },
                 child: const Text('홈으로'),
               ),
             ],

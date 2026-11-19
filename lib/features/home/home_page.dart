@@ -25,12 +25,13 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   RoutineStore get _store => AppServices.routines;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 앱을 다시 열었는데 운동이 진행 중이면 진행 화면으로 (docs/03 5.5절)
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _ent.refreshTrial();
@@ -48,6 +49,18 @@ class _HomePageState extends State<HomePage> {
       }
       await _askResume(saved);
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 앱으로 돌아올 때 무료 횟수 배지를 최신으로 (운동은 앱 밖에서도 끝날 수 있다)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _ent.refreshTrial();
   }
 
   /// D1 이어하기 확인 (docs/03_화면_설계.md 8장)
@@ -123,6 +136,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _start(Routine r, {EngineCheckpoint? restore}) async {
+    // 앱이 닫혀 있는 동안 끝난 운동의 차감을 반영한다.
+    // 오래된 값으로 판단하면 잠겨야 할 루틴이 시작될 수 있다.
+    await _ent.refreshTrial();
+    if (!mounted) return;
     if (!_ent.value.canStart(r) && !await PaywallPage.open(context)) return;
     if (!mounted) return;
     _ent.markRunStart();

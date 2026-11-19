@@ -126,6 +126,11 @@ class RunClient extends ChangeNotifier {
     return r is ServiceRequestSuccess;
   }
 
+  /// 시작에 실패한 것으로 판단했을 때 서비스를 내린다
+  Future<void> cancel() async {
+    if (await isRunning) await FlutterForegroundTask.stopService();
+  }
+
   void send(String cmd, [Object? arg]) =>
       FlutterForegroundTask.sendDataToTask({'cmd': cmd, 'arg': arg});
 
