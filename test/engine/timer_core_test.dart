@@ -309,7 +309,7 @@ void main() {
         e.whereType<SegmentStarted>().single.segment.type,
         SegmentType.rest,
       );
-      expect(speeches(e), ['1세트 완료, 휴식 1분 30초']);
+      expect(speeches(e), ['1세트 완료, 휴식 1분 30초, 다음 2세트 15회']);
     });
 
     test('이전: 운동 2초째면 준비로, 5초째면 1회차부터 다시', () {
@@ -324,7 +324,7 @@ void main() {
       final e = core.prev();
       expect(e.whereType<SegmentStarted>().single.segment.isRepWork, isTrue);
       expect(core.snapshot().tempo!.completedReps, 0);
-      expect(speeches(e), ['1세트, 15회 시작']);
+      expect(speeches(e), isEmpty); // 횟수 모드 운동 시작은 긴 비프만
     });
 
     test('동작 + 숫자: 재개하면 "내려가고"를 다시 읽는다', () {

@@ -64,8 +64,8 @@ void main() {
     final events = [...core.start(), ...runTo(core, 165000 + 100)];
     final said = speeches(events).toList();
     expect(said, contains('플랭크, 1라운드, 운동 시작'));
-    expect(said, contains('휴식 40초, 다음은 스쿼트'));
-    expect(said, contains('스쿼트, 1세트, 5회 시작'));
+    // 횟수 모드 루틴은 운동 시작에 음성이 없어 휴식에서 이름과 횟수를 읽는다
+    expect(said, contains('휴식 40초, 다음은 스쿼트, 1세트 5회'));
     final f = events.whereType<Finished>().single;
     expect(f.totalActiveMs, 165000);
     expect(f.stopped, isFalse);
