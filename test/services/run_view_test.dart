@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fitness_timer/engine/segment.dart';
 import 'package:fitness_timer/engine/tempo_clock.dart';
@@ -6,6 +7,9 @@ import 'package:fitness_timer/models/presets.dart';
 import 'package:fitness_timer/models/routine.dart';
 import 'package:fitness_timer/services/run/run_labels.dart';
 import 'package:fitness_timer/services/run/run_view.dart';
+import 'package:fitness_timer/l10n/l10n.dart';
+
+final ko = lookupAppLocalizations(const Locale('ko'));
 
 void main() {
   test('Routine JSON 왕복', () {
@@ -58,8 +62,8 @@ void main() {
     expect(RunLabels.clock(16200), '0:17');
     expect(RunLabels.clock(0), '0:00');
     expect(RunLabels.clock(90000), '1:30');
-    expect(RunLabels.segment(SegmentType.rest, isReps: true), '세트 간 휴식');
-    expect(RunLabels.segment(SegmentType.rest, isReps: false), '휴식');
+    expect(RunLabels.segment(ko, SegmentType.rest, isReps: true), '세트 간 휴식');
+    expect(RunLabels.segment(ko, SegmentType.rest, isReps: false), '휴식');
 
     var now = 0;
     final core = TimerCore(routine: Presets.tabata, clock: () => now);
@@ -67,7 +71,7 @@ void main() {
     now = 15000;
     core.tick();
     final v = RunView.from(core);
-    expect(RunLabels.progress(v), '라운드 1/8');
-    expect(RunLabels.next(v), '다음: 휴식 10초');
+    expect(RunLabels.progress(ko, v), '라운드 1/8');
+    expect(RunLabels.next(ko, v), '다음: 휴식 10초');
   });
 }

@@ -1,0 +1,471 @@
+{
+  "@@locale": "ko",
+  "cancel": "취소",
+  "delete": "삭제",
+  "discard": "버리기",
+  "save": "저장",
+  "saveAndStart": "저장 후 시작",
+  "confirm": "확인",
+  "start": "시작",
+  "edit": "수정",
+  "copyAndEdit": "복사해서 수정",
+  "done": "완료",
+  "goHome": "홈으로",
+  "settings": "설정",
+  "close": "닫기",
+  "add": "추가",
+  "name": "이름",
+  "nameRequired": "이름을 입력해 주세요",
+  "discardChangesTitle": "변경 사항을 버릴까요?",
+  "keepEditing": "계속 편집",
+  "dragToMove": "끌어서 옮기기",
+  "none": "없음",
+  "custom": "직접",
+  "customWith": "직접 · {value}",
+  "@customWith": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "routine": "루틴",
+  "myRoutines": "내 루틴",
+  "presets": "프리셋",
+  "courses": "코스",
+  "newRoutine": "새 루틴",
+  "newCourse": "새 코스",
+  "addRoutine": "루틴 추가",
+  "copyName": "{name} 복사",
+  "@copyName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultRoutineName": "내 루틴",
+  "defaultCourseName": "내 코스",
+  "timerStartFailed": "타이머를 시작하지 못했어요",
+  "connectInternet": "인터넷에 연결한 뒤 다시 시도해 주세요",
+  "restorePurchase": "구매 복원",
+  "purchaseRestored": "구매를 복원했어요",
+  "noPurchaseToRestore": "복원할 구매 내역이 없어요",
+  "viewFullVersion": "정식 버전 보기",
+  "freeRemaining": "무료 운동 {count}회 남음",
+  "@freeRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "durationSeconds": "{seconds}초",
+  "@durationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "durationMinutes": "{minutes}분",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationMinutesSeconds": "{minutes}분 {seconds}초",
+  "@durationMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "tempoSeconds": "{seconds}초",
+  "@tempoSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "estimateAbout": "약 {minutes}분",
+  "@estimateAbout": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "repsCount": "{count}회",
+  "@repsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "summaryReps": "{reps}회 × {sets}세트 · {tempo}",
+  "@summaryReps": {
+    "placeholders": {
+      "reps": {
+        "type": "int"
+      },
+      "sets": {
+        "type": "int"
+      },
+      "tempo": {
+        "type": "String"
+      }
+    }
+  },
+  "summaryWithSets": "{base} × {sets}세트",
+  "@summaryWithSets": {
+    "placeholders": {
+      "base": {
+        "type": "String"
+      },
+      "sets": {
+        "type": "int"
+      }
+    }
+  },
+  "courseNoRoutines": "루틴 없음",
+  "courseSummary": "루틴 {count}개 · {estimate}",
+  "@courseSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "segmentPrep": "준비",
+  "segmentWork": "운동",
+  "segmentRest": "휴식",
+  "segmentSetRest": "세트 간 휴식",
+  "progressCourseRest": "루틴 {done}/{total} 완료",
+  "@progressCourseRest": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "progressSet": "세트 {current}/{total}",
+  "@progressSet": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "progressRound": "라운드 {current}/{total}",
+  "@progressRound": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "progressRoundAndSet": "{round} · 세트 {current}/{total}",
+  "@progressRoundAndSet": {
+    "placeholders": {
+      "round": {
+        "type": "String"
+      },
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "nextDone": "다음: 완료",
+  "nextItem": "다음: {item}",
+  "@nextItem": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "pause": "일시정지",
+  "resume": "재개",
+  "next": "다음",
+  "previous": "이전",
+  "pausedTitle": "일시정지 · {title}",
+  "@pausedTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "repProgress": "{segment} {current}/{total}회",
+  "@repProgress": {
+    "placeholders": {
+      "segment": {
+        "type": "String"
+      },
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationChannelName": "운동 진행",
+  "notificationChannelDescription": "운동 타이머가 진행 중일 때 표시됩니다",
+  "notificationStarting": "시작하는 중",
+  "interruptedTitle": "운동이 중간에 멈췄어요",
+  "resumeQuestion": "멈춘 곳부터 이어서 할까요?",
+  "batteryHint": "휴대폰의 배터리 최적화 때문에 멈췄을 수 있어요. 배터리 설정에서 이 앱을 \"제한 없음\"으로 바꾸면 화면이 꺼져도 끊기지 않아요.",
+  "openBatterySettings": "배터리 설정 열기",
+  "restartFromBeginning": "처음부터",
+  "resumeWorkout": "이어서 하기",
+  "courseEmptySnack": "코스에 루틴이 없어요. 수정해서 루틴을 넣어 주세요",
+  "deleteRoutineTitle": "\"{name}\"을(를) 삭제할까요?",
+  "@deleteRoutineTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteRoutineInCourses": "이 루틴이 들어간 코스 {count}개에서도 빠져요.",
+  "@deleteRoutineInCourses": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newRoutineSubtitle": "운동 방식과 시간·횟수를 정해 만들어요",
+  "newCourseSubtitle": "내 루틴을 골라 이어서 하는 묶음을 만들어요",
+  "newCourseNeedsRoutine": "내 루틴을 먼저 만들어 주세요",
+  "deleteCourseTitle": "\"{name}\" 코스를 삭제할까요?",
+  "@deleteCourseTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCourseBody": "코스에 들어 있던 루틴은 지워지지 않아요.",
+  "favoriteAdd": "즐겨찾기 추가",
+  "favoriteRemove": "즐겨찾기 해제",
+  "reorderTitle": "순서 편집",
+  "reorderHint": "오른쪽 손잡이(≡)를 끌거나 항목을 길게 눌러 옮기세요. 같은 묶음 안에서만 옮길 수 있어요",
+  "sortCustom": "직접 정렬",
+  "sortRecent": "최근 사용순",
+  "sortName": "이름순",
+  "sortCreated": "만든 순",
+  "recent": "최근",
+  "favorites": "즐겨찾기",
+  "courseEmptyNoRoutines": "내 루틴을 먼저 만들면, 그 루틴들을 골라 코스로 묶을 수 있어요.",
+  "courseEmptyHint": "아래 \"추가\" 버튼으로 내 루틴을 골라 이어서 하는 코스를 만들어 보세요. 루틴 사이 휴식도 정할 수 있어요.",
+  "routinesEmpty": "자주 하는 운동을 루틴으로 저장해 보세요",
+  "createRoutine": "루틴 만들기",
+  "startNamed": "{name} 시작",
+  "@startNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lockedNamed": "{name} 잠김, 정식 버전에서 사용",
+  "@lockedNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "switchToRepsTitle": "세트 반복 설정이 사라집니다",
+  "switchToRepsBody": "횟수 모드는 라운드를 \"세트\"로 쓰고, 바깥 세트 반복은 쓰지 않아요.",
+  "switchAction": "바꾸기",
+  "editRoutine": "루틴 편집",
+  "workoutMode": "운동 방식",
+  "modeTime": "시간",
+  "modeReps": "횟수",
+  "targetReps": "목표 횟수",
+  "sets": "세트",
+  "rounds": "라운드",
+  "moreOptions": "더 보기",
+  "skipLastSetRest": "마지막 세트 휴식 건너뛰기",
+  "skipLastRoundRest": "마지막 라운드 휴식 건너뛰기",
+  "cueStyleTitle": "음성 안내 방식",
+  "cueNumbersOnly": "숫자만",
+  "cueActionAndNumbers": "동작 + 숫자",
+  "cueActionAndNumbersDisabled": "동작 + 숫자 (1회 2.5초 이상)",
+  "cueBeepOnly": "비프만",
+  "estimatedTime": "예상 시간 {time}",
+  "@estimatedTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tempoSlow": "천천히",
+  "tempoNormal": "보통",
+  "tempoFast": "빠르게",
+  "tempoTitle": "템포 (내려가기-멈춤-올라오기)",
+  "phaseDown": "내려가기",
+  "phaseHold": "멈춤",
+  "phaseUp": "올라오기",
+  "decreaseNamed": "{label} 줄이기",
+  "@decreaseNamed": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "increaseNamed": "{label} 늘리기",
+  "@increaseNamed": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "stopConfirmTitle": "운동을 끝낼까요?",
+  "keepGoing": "계속하기",
+  "stopAction": "끝내기",
+  "nextCoursePosition": "다음 {position}",
+  "@nextCoursePosition": {
+    "placeholders": {
+      "position": {
+        "type": "String"
+      }
+    }
+  },
+  "totalRemaining": "전체 {time}",
+  "@totalRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "plusTenSeconds": "+10초",
+  "setDone": "세트 완료",
+  "endWorkout": "운동 끝내기",
+  "workoutComplete": "운동 완료!",
+  "workoutStopped": "운동 종료",
+  "totalTime": "총 시간",
+  "routinesDone": "완료한 루틴",
+  "setsDone": "완료한 세트",
+  "progress": "진행",
+  "freeRemainingResult": "무료 운동 {count}회 남았어요 · 정식 버전 보기",
+  "@freeRemainingResult": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trialUsedUp": "무료 체험을 모두 사용했어요",
+  "trialUsedUpBody": "프리셋 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.",
+  "editCourse": "코스 편집",
+  "routineOrder": "루틴 순서",
+  "courseOrderHintEmpty": "아래 버튼으로 이어서 할 루틴을 넣으세요",
+  "courseOrderHint": "손잡이(≡)를 끌어 순서를 바꾸고, 사이의 휴식을 눌러 바꾸세요",
+  "deletedRoutine": "지워진 루틴",
+  "removeNamed": "{name} 빼기",
+  "@removeNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "maxSteps": "최대 {count}개까지 넣을 수 있어요",
+  "@maxSteps": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "needOneRoutine": "루틴을 1개 이상 넣어 주세요",
+  "noRest": "휴식 없이 바로",
+  "restWith": "휴식 {time}",
+  "@restWith": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "changeCourseRest": "루틴 사이 휴식 바꾸기",
+  "courseRest": "루틴 사이 휴식",
+  "courseRestNoneHint": "\"없음\"이면 앞 루틴이 끝나자마자 다음 루틴을 시작해요",
+  "noMyRoutines": "내 루틴이 없어요. 홈에서 루틴을 먼저 만들어 주세요.",
+  "fullVersionUnlocked": "정식 버전이 열렸어요",
+  "purchasePending": "결제 승인을 기다리고 있어요. 승인되면 자동으로 열려요.",
+  "purchaseFailed": "결제하지 못했어요.",
+  "paywallTitle": "Fitness Timer 정식 버전",
+  "paywallSubtitle": "한 번 구매로 평생 사용",
+  "benefitUnlimited": "내 루틴 무제한 만들기·실행",
+  "benefitReps": "횟수 모드·템포 직접 설정",
+  "benefitNoAds": "광고 없음, 구독 없음",
+  "buy": "구매하기",
+  "buyWithPrice": "{price} 구매하기",
+  "@buyWithPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "productLoadFailed": "상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "presetsFreeNote": "프리셋 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.",
+  "ttsPreviewText": "휴식 10초 남았습니다",
+  "alerts": "알림",
+  "sound": "소리",
+  "vibration": "진동",
+  "voiceGuide": "음성 안내",
+  "countdownBeforeEnd": "종료 전 카운트다운",
+  "speechSpeed": "음성 속도",
+  "speedSlow": "느리게",
+  "speedNormal": "보통",
+  "speedFast": "빠르게",
+  "previewVoice": "미리 듣기",
+  "voiceData": "한국어 음성",
+  "checking": "확인 중…",
+  "available": "사용 가능",
+  "voiceMissing": "설치 필요. 설치 전에는 비프음과 진동으로만 안내해요.",
+  "openTtsSettings": "TTS 설정 열기",
+  "screen": "화면",
+  "keepScreenOn": "운동 중 화면 꺼짐 방지",
+  "other": "기타",
+  "openSourceLicenses": "오픈소스 라이선스",
+  "fullVersion": "정식 버전",
+  "status": "상태",
+  "fullVersionActive": "정식 버전 사용 중",
+  "trialEnded": "체험 종료 (프리셋은 계속 무료)",
+  "buyFullVersion": "정식 버전 구매"
+}

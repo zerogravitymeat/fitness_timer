@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -13,8 +15,11 @@ import 'package:fitness_timer/services/run/run_view.dart';
 import 'package:fitness_timer/services/storage/routine_repository.dart';
 import 'package:fitness_timer/services/storage/routine_store.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fitness_timer/l10n/l10n.dart';
 
 /// 코스 진행 (docs/02 8-1장)
+final ko = lookupAppLocalizations(const Locale('ko'));
+
 void main() {
   const plank = Routine(
     id: 'p',
@@ -80,14 +85,14 @@ void main() {
     var v = RunView.from(core);
     expect(v.isCourse, isTrue);
     expect(RunLabels.coursePosition(v), '1/2 플랭크');
-    expect(RunLabels.next(v), '다음: 휴식 40초');
+    expect(RunLabels.next(ko, v), '다음: 휴식 40초');
 
     runTo(core, 80000); // 루틴 사이 휴식
     v = RunView.from(core);
     expect(v.segmentType, SegmentType.courseRest);
-    expect(RunLabels.segment(v.segmentType, isReps: v.isReps), '휴식');
-    expect(RunLabels.progress(v), '루틴 1/2 완료');
-    expect(RunLabels.next(v), '다음: 스쿼트');
+    expect(RunLabels.segment(ko, v.segmentType, isReps: v.isReps), '휴식');
+    expect(RunLabels.progress(ko, v), '루틴 1/2 완료');
+    expect(RunLabels.next(ko, v), '다음: 스쿼트');
     expect(v.routineName, '스쿼트');
 
     core.addRest(10000);
@@ -99,7 +104,7 @@ void main() {
     expect(v.routineName, '스쿼트');
     expect(v.targetReps, 5);
     expect(v.completedReps, 1); // 1회 3초 (보통 템포)
-    expect(RunLabels.progress(v), '세트 1/2');
+    expect(RunLabels.progress(ko, v), '세트 1/2');
   });
 
   test('다음/이전으로 루틴 경계를 넘나든다', () {

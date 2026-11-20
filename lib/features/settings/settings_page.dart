@@ -9,6 +9,7 @@ import '../../design/tokens.dart';
 import '../../models/app_settings.dart';
 import '../../models/entitlement.dart';
 import '../paywall/paywall_page.dart';
+import '../../l10n/l10n.dart';
 
 /// S5 설정 (docs/03_화면_설계.md 7장). 기능 확인용 기본 UI.
 class SettingsPage extends StatefulWidget {
@@ -50,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _preview(AppSettings s) async {
     await _tts.setLanguage('ko-KR');
     await _tts.setSpeechRate(s.speechSpeed.ttsRate);
-    await _tts.speak('휴식 10초 남았습니다');
+    await _tts.speak(context.l10n.ttsPreviewText);
   }
 
   Future<void> _openTtsSettings() async {
@@ -68,41 +69,50 @@ class _SettingsPageState extends State<SettingsPage> {
         final s = store.value;
         void set(AppSettings v) => store.update(v);
         return Scaffold(
-          appBar: AppBar(title: const Text('설정')),
+          appBar: AppBar(title: Text(context.l10n.settings)),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
             children: [
-              const _Group('알림'),
+              _Group(context.l10n.alerts),
               _Card(
                 children: [
                   SwitchListTile(
-                    title: const Text('소리'),
+                    title: Text(context.l10n.sound),
                     value: s.sound,
                     onChanged: (v) => set(s.copyWith(sound: v)),
                   ),
                   SwitchListTile(
-                    title: const Text('진동'),
+                    title: Text(context.l10n.vibration),
                     value: s.vibration,
                     onChanged: (v) => set(s.copyWith(vibration: v)),
                   ),
                   SwitchListTile(
-                    title: const Text('음성 안내'),
+                    title: Text(context.l10n.voiceGuide),
                     value: s.voice,
                     onChanged: (v) => set(s.copyWith(voice: v)),
                   ),
                   // 제목 아래에 선택 버튼 (좁은 화면에서 제목이 끊기지 않게)
                   ListTile(
-                    title: const Text('종료 전 카운트다운'),
+                    title: Text(context.l10n.countdownBeforeEnd),
                     subtitle: Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: SegmentedButton<int>(
                           showSelectedIcon: false,
-                          segments: const [
-                            ButtonSegment(value: 0, label: Text('없음')),
-                            ButtonSegment(value: 3, label: Text('3초')),
-                            ButtonSegment(value: 5, label: Text('5초')),
+                          segments: [
+                            ButtonSegment(
+                              value: 0,
+                              label: Text(context.l10n.none),
+                            ),
+                            ButtonSegment(
+                              value: 3,
+                              label: Text(context.l10n.durationSeconds(3)),
+                            ),
+                            ButtonSegment(
+                              value: 5,
+                              label: Text(context.l10n.durationSeconds(5)),
+                            ),
                           ],
                           selected: {s.countdownSeconds},
                           onSelectionChanged: (v) =>
@@ -112,25 +122,25 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   ListTile(
-                    title: const Text('음성 속도'),
+                    title: Text(context.l10n.speechSpeed),
                     subtitle: Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: SegmentedButton<SpeechSpeed>(
                           showSelectedIcon: false,
-                          segments: const [
+                          segments: [
                             ButtonSegment(
                               value: SpeechSpeed.slow,
-                              label: Text('느리게'),
+                              label: Text(context.l10n.speedSlow),
                             ),
                             ButtonSegment(
                               value: SpeechSpeed.normal,
-                              label: Text('보통'),
+                              label: Text(context.l10n.speedNormal),
                             ),
                             ButtonSegment(
                               value: SpeechSpeed.fast,
-                              label: Text('빠르게'),
+                              label: Text(context.l10n.speedFast),
                             ),
                           ],
                           selected: {s.speechSpeed},
@@ -140,7 +150,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     trailing: IconButton(
-                      tooltip: '미리 듣기',
+                      tooltip: context.l10n.previewVoice,
                       icon: const Icon(Icons.volume_up_outlined),
                       onPressed: _koreanVoice == true
                           ? () => _preview(s)
@@ -148,36 +158,36 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   ListTile(
-                    title: const Text('한국어 음성'),
+                    title: Text(context.l10n.voiceData),
                     subtitle: Text(switch (_koreanVoice) {
-                      null => '확인 중…',
-                      true => '사용 가능',
-                      false => '설치 필요. 설치 전에는 비프음과 진동으로만 안내해요.',
+                      null => context.l10n.checking,
+                      true => context.l10n.available,
+                      false => context.l10n.voiceMissing,
                     }),
                     trailing: _koreanVoice == false
                         ? TextButton(
                             onPressed: _openTtsSettings,
-                            child: const Text('TTS 설정 열기'),
+                            child: Text(context.l10n.openTtsSettings),
                           )
                         : null,
                   ),
                 ],
               ),
-              const _Group('화면'),
+              _Group(context.l10n.screen),
               _Card(
                 children: [
                   SwitchListTile(
-                    title: const Text('운동 중 화면 꺼짐 방지'),
+                    title: Text(context.l10n.keepScreenOn),
                     value: s.keepScreenOn,
                     onChanged: (v) => set(s.copyWith(keepScreenOn: v)),
                   ),
                 ],
               ),
-              const _Group('기타'),
+              _Group(context.l10n.other),
               _Card(
                 children: [
                   ListTile(
-                    title: const Text('오픈소스 라이선스'),
+                    title: Text(context.l10n.openSourceLicenses),
                     onTap: () => showLicensePage(
                       context: context,
                       applicationName: 'Fitness Timer',
@@ -208,34 +218,36 @@ class _PurchaseSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _Group('정식 버전'),
+            _Group(context.l10n.fullVersion),
             _Card(
               children: [
                 ListTile(
-                  title: const Text('상태'),
+                  title: Text(context.l10n.status),
                   subtitle: Text(
                     e.isFull
-                        ? '정식 버전 사용 중'
+                        ? context.l10n.fullVersionActive
                         : e.inTrial
-                        ? '무료 운동 ${e.freeRemaining}회 남음'
-                        : '체험 종료 (프리셋은 계속 무료)',
+                        ? context.l10n.freeRemaining(e.freeRemaining)
+                        : context.l10n.trialEnded,
                   ),
                 ),
                 if (!e.isFull)
                   ListTile(
-                    title: const Text('정식 버전 구매'),
+                    title: Text(context.l10n.buyFullVersion),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => PaywallPage.open(context),
                   ),
                 ListTile(
-                  title: const Text('구매 복원'),
+                  title: Text(context.l10n.restorePurchase),
                   onTap: () async {
                     final messenger = ScaffoldMessenger.of(context);
                     await AppServices.billing.restore();
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
-                          ent.value.isFull ? '구매를 복원했어요' : '복원할 구매 내역이 없어요',
+                          ent.value.isFull
+                              ? context.l10n.purchaseRestored
+                              : context.l10n.noPurchaseToRestore,
                         ),
                       ),
                     );

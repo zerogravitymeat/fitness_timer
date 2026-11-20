@@ -7,6 +7,7 @@ import '../../design/glass.dart';
 import '../../design/tokens.dart';
 import '../../models/routine.dart';
 import '../common/routine_summary.dart';
+import '../../l10n/l10n.dart';
 import 'edit_rules.dart';
 
 /// 편집 결과. [start]가 true면 저장 후 바로 시작.
@@ -30,12 +31,14 @@ class EditPage extends StatefulWidget {
 class _EditPageState extends State<EditPage> {
   late Routine _r = widget.initial;
   late final _name = TextEditingController(text: widget.initial.name);
-  late bool _customTempo = !_presetTempos.containsValue(widget.initial.tempo);
+  late bool _customTempo = !_presetTempos.contains(widget.initial.tempo);
 
-  static const _presetTempos = {
-    '천천히': Tempo.slow,
-    '보통': Tempo.normal,
-    '빠르게': Tempo.fast,
+  static const _presetTempos = [Tempo.slow, Tempo.normal, Tempo.fast];
+
+  String _tempoName(Tempo t) => switch (t) {
+    Tempo.slow => context.l10n.tempoSlow,
+    Tempo.normal => context.l10n.tempoNormal,
+    _ => context.l10n.tempoFast,
   };
 
   bool get _dirty =>
@@ -70,16 +73,16 @@ class _EditPageState extends State<EditPage> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('세트 반복 설정이 사라집니다'),
-          content: const Text('횟수 모드는 라운드를 "세트"로 쓰고, 바깥 세트 반복은 쓰지 않아요.'),
+          title: Text(context.l10n.switchToRepsTitle),
+          content: Text(context.l10n.switchToRepsBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(c, false),
-              child: const Text('취소'),
+              child: Text(context.l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(c, true),
-              child: const Text('바꾸기'),
+              child: Text(context.l10n.switchAction),
             ),
           ],
         ),
@@ -101,15 +104,15 @@ class _EditPageState extends State<EditPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('변경 사항을 버릴까요?'),
+        title: Text(context.l10n.discardChangesTitle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('계속 편집'),
+            child: Text(context.l10n.keepEditing),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('버리기'),
+            child: Text(context.l10n.discard),
           ),
         ],
       ),
@@ -131,7 +134,11 @@ class _EditPageState extends State<EditPage> {
         if (await _confirmDiscard()) nav.pop();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.isNew ? '새 루틴' : '루틴 편집')),
+        appBar: AppBar(
+          title: Text(
+            widget.isNew ? context.l10n.newRoutine : context.l10n.editRoutine,
+          ),
+        ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
@@ -140,23 +147,23 @@ class _EditPageState extends State<EditPage> {
                 controller: _name,
                 maxLength: RoutineLimits.maxNameLength,
                 decoration: InputDecoration(
-                  labelText: '이름',
-                  errorText: nameOk ? null : '이름을 입력해 주세요',
+                  labelText: context.l10n.name,
+                  errorText: nameOk ? null : context.l10n.nameRequired,
                 ),
               ),
               const SizedBox(height: 8),
-              const _Label('운동 방식'),
+              _Label(context.l10n.workoutMode),
               SegmentedButton<EndCondition>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: EndCondition.time,
-                    label: Text('시간'),
-                    icon: Icon(Icons.timer_outlined),
+                    label: Text(context.l10n.modeTime),
+                    icon: const Icon(Icons.timer_outlined),
                   ),
                   ButtonSegment(
                     value: EndCondition.reps,
-                    label: Text('횟수'),
-                    icon: Icon(Icons.repeat),
+                    label: Text(context.l10n.modeReps),
+                    icon: const Icon(Icons.repeat),
                   ),
                 ],
                 selected: {r.endCondition},
@@ -166,7 +173,7 @@ class _EditPageState extends State<EditPage> {
             ]),
             _card([
               _TimeStepper(
-                label: '준비',
+                label: context.l10n.segmentPrep,
                 ms: r.prepMs,
                 min: 0,
                 max: RoutineLimits.maxPrepMs,
@@ -174,7 +181,7 @@ class _EditPageState extends State<EditPage> {
               ),
               if (!reps)
                 _TimeStepper(
-                  label: '운동',
+                  label: context.l10n.segmentWork,
                   ms: r.workMs,
                   min: RoutineLimits.minWorkMs,
                   max: RoutineLimits.maxWorkMs,
@@ -182,9 +189,9 @@ class _EditPageState extends State<EditPage> {
                 )
               else ...[
                 _IntStepper(
-                  label: '목표 횟수',
+                  label: context.l10n.targetReps,
                   value: r.targetReps,
-                  unit: '회',
+                  format: context.l10n.repsCount,
                   min: 1,
                   max: RoutineLimits.maxReps,
                   onChanged: (v) => _set(r.copyWith(targetReps: v)),
@@ -192,14 +199,16 @@ class _EditPageState extends State<EditPage> {
                 _tempoEditor(r),
               ],
               _TimeStepper(
-                label: reps ? '세트 간 휴식' : '휴식',
+                label: reps
+                    ? context.l10n.segmentSetRest
+                    : context.l10n.segmentRest,
                 ms: r.restMs,
                 min: 0,
                 max: RoutineLimits.maxRestMs,
                 onChanged: (v) => _set(r.copyWith(restMs: v)),
               ),
               _IntStepper(
-                label: reps ? '세트' : '라운드',
+                label: reps ? context.l10n.sets : context.l10n.rounds,
                 value: r.rounds,
                 min: 1,
                 max: RoutineLimits.maxRounds,
@@ -207,7 +216,7 @@ class _EditPageState extends State<EditPage> {
               ),
               if (!reps) ...[
                 _IntStepper(
-                  label: '세트',
+                  label: context.l10n.sets,
                   value: r.sets,
                   min: 1,
                   max: RoutineLimits.maxSets,
@@ -215,7 +224,7 @@ class _EditPageState extends State<EditPage> {
                 ),
                 if (r.sets > 1)
                   _TimeStepper(
-                    label: '세트 간 휴식',
+                    label: context.l10n.segmentSetRest,
                     ms: r.setRestMs,
                     min: 0,
                     max: RoutineLimits.maxSetRestMs,
@@ -228,39 +237,43 @@ class _EditPageState extends State<EditPage> {
                 tilePadding: EdgeInsets.zero,
                 shape: const Border(),
                 collapsedShape: const Border(),
-                title: const Text('더 보기'),
+                title: Text(context.l10n.moreOptions),
                 children: [
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(reps ? '마지막 세트 휴식 건너뛰기' : '마지막 라운드 휴식 건너뛰기'),
+                    title: Text(
+                      reps
+                          ? context.l10n.skipLastSetRest
+                          : context.l10n.skipLastRoundRest,
+                    ),
                     value: r.skipLastRest,
                     onChanged: (v) => _set(r.copyWith(skipLastRest: v)),
                   ),
                   if (reps)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('음성 안내 방식'),
+                      title: Text(context.l10n.cueStyleTitle),
                       trailing: DropdownButton<CueStyle>(
                         value: r.cueStyle,
                         onChanged: (v) =>
                             v == null ? null : _set(r.copyWith(cueStyle: v)),
                         items: [
-                          const DropdownMenuItem(
+                          DropdownMenuItem(
                             value: CueStyle.numbersOnly,
-                            child: Text('숫자만'),
+                            child: Text(context.l10n.cueNumbersOnly),
                           ),
                           DropdownMenuItem(
                             value: CueStyle.actionAndNumbers,
                             enabled: EditRules.actionCueAllowed(r.tempo),
                             child: Text(
                               EditRules.actionCueAllowed(r.tempo)
-                                  ? '동작 + 숫자'
-                                  : '동작 + 숫자 (1회 2.5초 이상)',
+                                  ? context.l10n.cueActionAndNumbers
+                                  : context.l10n.cueActionAndNumbersDisabled,
                             ),
                           ),
-                          const DropdownMenuItem(
+                          DropdownMenuItem(
                             value: CueStyle.beepOnly,
-                            child: Text('비프만'),
+                            child: Text(context.l10n.cueBeepOnly),
                           ),
                         ],
                       ),
@@ -285,7 +298,9 @@ class _EditPageState extends State<EditPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '예상 시간 ${RoutineSummary.estimate(r)}',
+                    context.l10n.estimatedTime(
+                      RoutineSummary.estimate(context.l10n, r),
+                    ),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontFeatures: tabularFigures,
@@ -302,7 +317,7 @@ class _EditPageState extends State<EditPage> {
                           onPressed: nameOk
                               ? () => _finish(start: false)
                               : null,
-                          child: const Text('저장'),
+                          child: Text(context.l10n.save),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -312,7 +327,7 @@ class _EditPageState extends State<EditPage> {
                             minimumSize: const Size.fromHeight(52),
                           ),
                           onPressed: nameOk ? () => _finish(start: true) : null,
-                          child: const Text('저장 후 시작'),
+                          child: Text(context.l10n.saveAndStart),
                         ),
                       ),
                     ],
@@ -341,39 +356,36 @@ class _EditPageState extends State<EditPage> {
   );
 
   Widget _tempoEditor(Routine r) {
+    // null이면 직접 입력
     final selected = _customTempo
-        ? '직접'
-        : _presetTempos.entries
-                  .where((e) => e.value == r.tempo)
-                  .firstOrNull
-                  ?.key ??
-              '직접';
+        ? null
+        : _presetTempos.where((t) => t == r.tempo).firstOrNull;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Label('템포 (내려가기-멈춤-올라오기)'),
+        _Label(context.l10n.tempoTitle),
         Wrap(
           spacing: 8,
           children: [
-            for (final e in _presetTempos.entries)
+            for (final t in _presetTempos)
               ChoiceChip(
-                label: Text('${e.key} ${e.value.label}'),
-                selected: selected == e.key,
+                label: Text('${_tempoName(t)} ${t.label}'),
+                selected: selected == t,
                 onSelected: (_) {
                   _customTempo = false;
-                  _set(r.copyWith(tempo: e.value));
+                  _set(r.copyWith(tempo: t));
                 },
               ),
             ChoiceChip(
-              label: const Text('직접'),
-              selected: selected == '직접',
+              label: Text(context.l10n.custom),
+              selected: selected == null,
               onSelected: (_) => setState(() => _customTempo = true),
             ),
           ],
         ),
-        if (selected == '직접') ...[
+        if (selected == null) ...[
           _TempoStepper(
-            label: '내려가기',
+            label: context.l10n.phaseDown,
             ms: r.tempo.downMs,
             min: RoutineLimits.minTempoMs,
             onChanged: (v) => _set(
@@ -387,7 +399,7 @@ class _EditPageState extends State<EditPage> {
             ),
           ),
           _TempoStepper(
-            label: '멈춤',
+            label: context.l10n.phaseHold,
             ms: r.tempo.holdMs,
             min: 0,
             onChanged: (v) => _set(
@@ -401,7 +413,7 @@ class _EditPageState extends State<EditPage> {
             ),
           ),
           _TempoStepper(
-            label: '올라오기',
+            label: context.l10n.phaseUp,
             ms: r.tempo.upMs,
             min: RoutineLimits.minTempoMs,
             onChanged: (v) => _set(
@@ -433,9 +445,9 @@ class _Label extends StatelessWidget {
   );
 }
 
-String _fmtTime(int ms) {
+String _fmtTime(AppLocalizations l, int ms) {
   final s = ms ~/ 1000;
-  if (s < 60) return '$s초';
+  if (s < 60) return l.durationSeconds(s);
   return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
 }
 
@@ -474,7 +486,7 @@ class _StepperRow extends StatelessWidget {
           icon: Icons.remove,
           enabled: canDown,
           onStep: onDown,
-          tooltip: '$label 줄이기',
+          tooltip: context.l10n.decreaseNamed(label),
         ),
         SizedBox(
           width: 88,
@@ -490,7 +502,7 @@ class _StepperRow extends StatelessWidget {
           icon: Icons.add,
           enabled: canUp,
           onStep: onUp,
-          tooltip: '$label 늘리기',
+          tooltip: context.l10n.increaseNamed(label),
         ),
       ],
     ),
@@ -574,7 +586,7 @@ class _TimeStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _StepperRow(
     label: label,
-    valueText: _fmtTime(ms),
+    valueText: _fmtTime(context.l10n, ms),
     canDown: ms > min,
     canUp: ms < max,
     onDown: () =>
@@ -594,19 +606,21 @@ class _IntStepper extends StatelessWidget {
     required this.min,
     required this.max,
     required this.onChanged,
-    this.unit = '',
+    this.format,
   });
   final String label;
   final int value;
   final int min;
   final int max;
-  final String unit;
+
+  /// 값 표기 (예: "12회"). 없으면 숫자만.
+  final String Function(int)? format;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) => _StepperRow(
     label: label,
-    valueText: '$value$unit',
+    valueText: format?.call(value) ?? '$value',
     canDown: value > min,
     canUp: value < max,
     onDown: () =>
@@ -631,8 +645,9 @@ class _TempoStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _StepperRow(
     label: label,
-    valueText:
-        '${ms % 1000 == 0 ? ms ~/ 1000 : (ms / 1000).toStringAsFixed(1)}초',
+    valueText: context.l10n.tempoSeconds(
+      ms % 1000 == 0 ? '${ms ~/ 1000}' : (ms / 1000).toStringAsFixed(1),
+    ),
     canDown: ms > min,
     canUp: ms < RoutineLimits.maxTempoMs,
     onDown: () => onChanged(EditRules.stepTempo(ms, up: false, min: min)),
@@ -665,7 +680,8 @@ Future<int?> pickTime(BuildContext context, String label, int ms) {
                     ),
                     onSelectedItemChanged: (v) => m = v,
                     children: [
-                      for (var i = 0; i < 100; i++) Center(child: Text('$i분')),
+                      for (var i = 0; i < 100; i++)
+                        Center(child: Text(c.l10n.durationMinutes(i))),
                     ],
                   ),
                 ),
@@ -677,7 +693,8 @@ Future<int?> pickTime(BuildContext context, String label, int ms) {
                     ),
                     onSelectedItemChanged: (v) => s = v,
                     children: [
-                      for (var i = 0; i < 60; i++) Center(child: Text('$i초')),
+                      for (var i = 0; i < 60; i++)
+                        Center(child: Text(c.l10n.durationSeconds(i))),
                     ],
                   ),
                 ),
@@ -691,7 +708,7 @@ Future<int?> pickTime(BuildContext context, String label, int ms) {
                 minimumSize: const Size.fromHeight(48),
               ),
               onPressed: () => Navigator.pop(c, (m * 60 + s) * 1000),
-              child: const Text('확인'),
+              child: Text(context.l10n.confirm),
             ),
           ),
         ],

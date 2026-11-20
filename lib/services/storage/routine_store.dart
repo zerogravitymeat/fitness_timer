@@ -185,11 +185,14 @@ class RoutineStore extends ChangeNotifier {
   }
 
   /// "복사해서 수정"용 사본. 아직 저장하지 않는다.
-  Routine copyOf(Routine r) {
-    final base = r.name.length > RoutineLimits.maxNameLength - 3
-        ? r.name.substring(0, RoutineLimits.maxNameLength - 3)
-        : r.name;
-    return r.copyWith(id: newId(), isPreset: false, name: '$base 복사');
+  /// [format]은 언어별 사본 이름 (예: "{name} 복사").
+  Routine copyOf(Routine r, String Function(String name) format) =>
+      r.copyWith(id: newId(), isPreset: false, name: copyName(r.name, format));
+
+  /// 사본 이름. 이름 길이 제한을 넘지 않도록 원래 이름을 자른다.
+  static String copyName(String name, String Function(String name) format) {
+    final room = RoutineLimits.maxNameLength - format('').length;
+    return format(name.length > room ? name.substring(0, room) : name);
   }
 
   // ── 코스 (docs/02 8-1장) ─────────────────────────

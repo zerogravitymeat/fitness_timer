@@ -5,6 +5,7 @@ import '../../design/app_icon_painter.dart';
 import '../../design/glass.dart';
 import '../../design/tokens.dart';
 import '../../services/billing/billing_service.dart';
+import '../../l10n/l10n.dart';
 
 /// S6 정식 버전 구매 (docs/03_화면_설계.md 7-1장). 기능 확인용 기본 UI.
 /// 구매가 끝나면 `true`를 돌려준다 → 부른 쪽은 하려던 동작을 이어간다.
@@ -47,17 +48,19 @@ class _PaywallPageState extends State<PaywallPage> {
     setState(() => _busy = false);
     switch (r) {
       case BuyResult.purchased:
-        _done('정식 버전이 열렸어요');
+        _done(context.l10n.fullVersionUnlocked);
       case BuyResult.pending:
-        setState(() => _message = '결제 승인을 기다리고 있어요. 승인되면 자동으로 열려요.');
+        setState(() => _message = context.l10n.purchasePending);
       case BuyResult.canceled:
         break; // 화면에 그대로 머문다 (docs/03 S6)
       case BuyResult.failed:
         setState(
-          () => _message = '결제하지 못했어요. ${_billing.lastError ?? ''}'.trim(),
+          () => _message =
+              '${context.l10n.purchaseFailed} ${_billing.lastError ?? ''}'
+                  .trim(),
         );
       case BuyResult.unavailable:
-        setState(() => _message = '인터넷에 연결한 뒤 다시 시도해 주세요');
+        setState(() => _message = context.l10n.connectInternet);
     }
   }
 
@@ -70,9 +73,9 @@ class _PaywallPageState extends State<PaywallPage> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (AppServices.entitlement.value.isFull) {
-      _done('구매를 복원했어요');
+      _done(context.l10n.purchaseRestored);
     } else {
-      setState(() => _message = '복원할 구매 내역이 없어요');
+      setState(() => _message = context.l10n.noPurchaseToRestore);
     }
   }
 
@@ -91,7 +94,7 @@ class _PaywallPageState extends State<PaywallPage> {
         return Scaffold(
           appBar: AppBar(
             leading: IconButton(
-              tooltip: '닫기',
+              tooltip: context.l10n.close,
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(context).pop(false),
             ),
@@ -105,7 +108,7 @@ class _PaywallPageState extends State<PaywallPage> {
                   const Center(child: AppIconMark(size: 104)),
                   const SizedBox(height: 20),
                   Text(
-                    'Fitness Timer 정식 버전',
+                    context.l10n.paywallTitle,
                     textAlign: TextAlign.center,
                     style: text.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
@@ -113,7 +116,7 @@ class _PaywallPageState extends State<PaywallPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '한 번 구매로 평생 사용',
+                    context.l10n.paywallSubtitle,
                     textAlign: TextAlign.center,
                     style: text.titleMedium,
                   ),
@@ -122,27 +125,27 @@ class _PaywallPageState extends State<PaywallPage> {
                     blur: true,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Column(
-                      children: const [
+                      children: [
                         ListTile(
                           leading: Icon(
                             Icons.check_circle_rounded,
                             color: Colors.white,
                           ),
-                          title: Text('내 루틴 무제한 만들기·실행'),
+                          title: Text(context.l10n.benefitUnlimited),
                         ),
                         ListTile(
                           leading: Icon(
                             Icons.check_circle_rounded,
                             color: Colors.white,
                           ),
-                          title: Text('횟수 모드·템포 직접 설정'),
+                          title: Text(context.l10n.benefitReps),
                         ),
                         ListTile(
                           leading: Icon(
                             Icons.check_circle_rounded,
                             color: Colors.white,
                           ),
-                          title: Text('광고 없음, 구독 없음'),
+                          title: Text(context.l10n.benefitNoAds),
                         ),
                       ],
                     ),
@@ -171,7 +174,9 @@ class _PaywallPageState extends State<PaywallPage> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
-                            price == null ? '구매하기' : '$price 구매하기',
+                            price == null
+                                ? context.l10n.buy
+                                : context.l10n.buyWithPrice(price),
                             style: const TextStyle(fontSize: 17),
                           ),
                   ),
@@ -180,8 +185,8 @@ class _PaywallPageState extends State<PaywallPage> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         _billing.storeAvailable
-                            ? '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
-                            : '인터넷에 연결한 뒤 다시 시도해 주세요',
+                            ? context.l10n.productLoadFailed
+                            : context.l10n.connectInternet,
                         textAlign: TextAlign.center,
                         style: text.bodySmall,
                       ),
@@ -194,11 +199,11 @@ class _PaywallPageState extends State<PaywallPage> {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _busy ? null : _restore,
-                    child: const Text('구매 복원'),
+                    child: Text(context.l10n.restorePurchase),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '프리셋 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.',
+                    context.l10n.presetsFreeNote,
                     textAlign: TextAlign.center,
                     style: text.bodySmall,
                   ),

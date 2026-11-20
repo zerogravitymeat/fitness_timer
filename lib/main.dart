@@ -6,6 +6,7 @@ import 'app/app_services.dart';
 import 'design/app_theme.dart';
 import 'design/glass.dart';
 import 'features/home/home_page.dart';
+import 'l10n/l10n.dart';
 import 'services/run/run_client.dart';
 
 Future<void> main() async {
@@ -30,6 +31,8 @@ class FitnessTimerApp extends StatelessWidget {
     return MaterialApp(
       title: 'Fitness Timer',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       // 글래스모피즘, 다크 테마만 (docs/04)
       theme: AppTheme.dark(),
       // 모든 화면 뒤에 공통 배경. 진행 화면은 자기 배경(구간 색)으로 덮는다.

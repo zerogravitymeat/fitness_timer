@@ -6,6 +6,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../engine/timer_core.dart';
 import '../../engine/cue_planner.dart';
+import '../../l10n/l10n.dart';
 import '../../models/app_settings.dart';
 import '../../models/workout.dart';
 import '../audio/cue_player.dart';
@@ -44,6 +45,9 @@ class RunTaskHandler extends TaskHandler {
   RunStatus? _lastNotifyStatus;
   Finished? _finished;
   RunSnapshotStore? _snapshots;
+
+  /// 알림 문구. 서비스 isolate에는 BuildContext가 없어 기기 언어로 직접 찾는다.
+  final _l = l10nFor(WidgetsBinding.instance.platformDispatcher.locale);
   TrialStore? _trial;
   int _lastSnapshotAt = 0;
   static const snapshotInterval = Duration(seconds: 5);
@@ -129,8 +133,8 @@ class RunTaskHandler extends TaskHandler {
     _lastSnapshotAt = core.activeMs;
     final v = RunView.from(core);
     final label = v.isCourse
-        ? '${RunLabels.coursePosition(v)} · ${RunLabels.progress(v)}'
-        : RunLabels.progress(v);
+        ? '${RunLabels.coursePosition(v)} · ${RunLabels.progress(_l, v)}'
+        : RunLabels.progress(_l, v);
     store.save(core.workout, core.checkpoint, label).catchError((Object e) {
       debugPrint('RunTaskHandler: 진행 상태 저장 실패 $e');
     });
@@ -225,19 +229,24 @@ class RunTaskHandler extends TaskHandler {
     final title = v.isCourse
         ? '${v.workoutName} · ${RunLabels.coursePosition(v)}'
         : v.routineName;
+    final seg = RunLabels.segment(_l, v.segmentType, isReps: v.isReps);
     final main = v.isRepWork
-        ? '${RunLabels.segment(v.segmentType, isReps: v.isReps)} ${((v.completedReps ?? 0) + 1).clamp(1, v.targetReps!)}/${v.targetReps}회'
-        : '${RunLabels.segment(v.segmentType, isReps: v.isReps)} ${RunLabels.clock(v.segmentRemainingMs)}';
+        ? _l.repProgress(
+            seg,
+            ((v.completedReps ?? 0) + 1).clamp(1, v.targetReps!),
+            v.targetReps!,
+          )
+        : '$seg ${RunLabels.clock(v.segmentRemainingMs)}';
     FlutterForegroundTask.updateService(
-      notificationTitle: paused ? '일시정지 · $title' : title,
-      notificationText: '$main · ${RunLabels.progress(v)}',
+      notificationTitle: paused ? _l.pausedTitle(title) : title,
+      notificationText: '$main · ${RunLabels.progress(_l, v)}',
       notificationButtons: statusChanged
           ? [
               NotificationButton(
                 id: paused ? RunProtocol.cmdResume : RunProtocol.cmdPause,
-                text: paused ? '재개' : '일시정지',
+                text: paused ? _l.resume : _l.pause,
               ),
-              const NotificationButton(id: RunProtocol.cmdNext, text: '다음'),
+              NotificationButton(id: RunProtocol.cmdNext, text: _l.next),
             ]
           : null,
     );

@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../engine/timer_core.dart';
+import '../../l10n/l10n.dart';
 import '../../models/app_settings.dart';
 import '../../models/workout.dart';
 import '../audio/sound_files.dart';
@@ -26,6 +28,9 @@ class RunResult {
 
 /// 화면 쪽에서 서비스를 시작·조작하고 진행 상태를 받는다.
 class RunClient extends ChangeNotifier {
+  AppLocalizations get _l =>
+      l10nFor(WidgetsBinding.instance.platformDispatcher.locale);
+
   RunClient._();
   static final instance = RunClient._();
 
@@ -47,8 +52,8 @@ class RunClient extends ChangeNotifier {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'run',
-        channelName: '운동 진행',
-        channelDescription: '운동 타이머가 진행 중일 때 표시됩니다',
+        channelName: _l.notificationChannelName,
+        channelDescription: _l.notificationChannelDescription,
         onlyAlertOnce: true,
       ),
       iosNotificationOptions: const IOSNotificationOptions(),
@@ -115,10 +120,10 @@ class RunClient extends ChangeNotifier {
       serviceId: 100,
       serviceTypes: [ForegroundServiceTypes.specialUse],
       notificationTitle: workout.name,
-      notificationText: '시작하는 중',
-      notificationButtons: const [
-        NotificationButton(id: RunProtocol.cmdPause, text: '일시정지'),
-        NotificationButton(id: RunProtocol.cmdNext, text: '다음'),
+      notificationText: _l.notificationStarting,
+      notificationButtons: [
+        NotificationButton(id: RunProtocol.cmdPause, text: _l.pause),
+        NotificationButton(id: RunProtocol.cmdNext, text: _l.next),
       ],
       callback: runServiceEntryPoint,
     );

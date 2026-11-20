@@ -22,6 +22,7 @@ import '../edit/edit_rules.dart';
 import '../paywall/paywall_page.dart';
 import '../run/run_page.dart';
 import '../settings/settings_page.dart';
+import '../../l10n/l10n.dart';
 
 /// S1 홈 (docs/03_화면_설계.md 3장). 글래스 디자인은 개발 7단계에서 입힌다.
 class HomePage extends StatefulWidget {
@@ -78,7 +79,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       context: context,
       barrierDismissible: false,
       builder: (c) => AlertDialog(
-        title: const Text('운동이 중간에 멈췄어요'),
+        title: Text(context.l10n.interruptedTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,19 +92,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               style: Theme.of(c).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
-            const Text('멈춘 곳부터 이어서 할까요?'),
+            Text(context.l10n.resumeQuestion),
             if (batteryLimited) ...[
               const SizedBox(height: 16),
               // 제조사 배터리 최적화가 앱을 종료했을 수 있다 (docs/05 6.3절 3차 방어)
               Text(
-                '휴대폰의 배터리 최적화 때문에 멈췄을 수 있어요. '
-                '배터리 설정에서 이 앱을 "제한 없음"으로 바꾸면 화면이 꺼져도 끊기지 않아요.',
+                context.l10n.batteryHint,
                 style: Theme.of(c).textTheme.bodySmall,
               ),
               TextButton(
                 onPressed:
                     FlutterForegroundTask.openIgnoreBatteryOptimizationSettings,
-                child: const Text('배터리 설정 열기'),
+                child: Text(context.l10n.openBatterySettings),
               ),
             ],
           ],
@@ -111,15 +111,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, 'discard'),
-            child: const Text('버리기'),
+            child: Text(context.l10n.discard),
           ),
           TextButton(
             onPressed: () => Navigator.pop(c, 'restart'),
-            child: const Text('처음부터'),
+            child: Text(context.l10n.restartFromBeginning),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, 'resume'),
-            child: const Text('이어서 하기'),
+            child: Text(context.l10n.resumeWorkout),
           ),
         ],
       ),
@@ -146,9 +146,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _startCourse(Course c) async {
     final w = _store.workoutOf(c);
     if (w.routines.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('코스에 루틴이 없어요. 수정해서 루틴을 넣어 주세요')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.l10n.courseEmptySnack)));
       return;
     }
     await _startWorkout(w);
@@ -174,7 +173,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (!mounted) return;
     if (!ok) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('타이머를 시작하지 못했어요')));
+          .showSnackBar(SnackBar(content: Text(context.l10n.timerStartFailed)));
       return;
     }
     _store.markUsed(w.courseId ?? w.routines.first.id);
@@ -203,18 +202,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('"${r.name}"을(를) 삭제할까요?'),
+        title: Text(context.l10n.deleteRoutineTitle(r.name)),
         content: inCourses == 0
             ? null
-            : Text('이 루틴이 들어간 코스 $inCourses개에서도 빠져요.'),
+            : Text(context.l10n.deleteRoutineInCourses(inCourses)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('취소'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('삭제'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -252,18 +251,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             children: [
               ListTile(
                 leading: const Icon(Icons.timer_outlined),
-                title: const Text('새 루틴'),
-                subtitle: const Text('운동 방식과 시간·횟수를 정해 만들어요'),
+                title: Text(context.l10n.newRoutine),
+                subtitle: Text(context.l10n.newRoutineSubtitle),
                 onTap: () => close(
-                  () => _edit(EditRules.blank(_store.newId()), isNew: true),
+                  () => _edit(
+                    EditRules.blank(
+                      _store.newId(),
+                      context.l10n.defaultRoutineName,
+                    ),
+                    isNew: true,
+                  ),
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.playlist_add),
-                title: const Text('새 코스'),
+                title: Text(context.l10n.newCourse),
                 // 코스는 내 루틴을 조합해서 만든다. 내 루틴이 없으면 만들 수 없다.
                 subtitle: Text(
-                  hasMine ? '내 루틴을 골라 이어서 하는 묶음을 만들어요' : '내 루틴을 먼저 만들어 주세요',
+                  hasMine
+                      ? context.l10n.newCourseSubtitle
+                      : context.l10n.newCourseNeedsRoutine,
                 ),
                 enabled: hasMine,
                 onTap: () => close(_newCourse),
@@ -275,23 +282,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
-  void _newCourse() =>
-      _editCourse(Course(id: _store.newCourseId(), name: '내 코스'), isNew: true);
+  void _newCourse() => _editCourse(
+    Course(id: _store.newCourseId(), name: context.l10n.defaultCourseName),
+    isNew: true,
+  );
 
   Future<void> _confirmDeleteCourse(Course c) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
-        title: Text('"${c.name}" 코스를 삭제할까요?'),
-        content: const Text('코스에 들어 있던 루틴은 지워지지 않아요.'),
+        title: Text(context.l10n.deleteCourseTitle(c.name)),
+        content: Text(context.l10n.deleteCourseBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(d, false),
-            child: const Text('취소'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(d, true),
-            child: const Text('삭제'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -317,29 +326,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ListTile(
                 title: Text(course.name),
                 subtitle: Text(
-                  '${RoutineSummary.course(w)}\n${RoutineSummary.courseNames(w)}',
+                  '${RoutineSummary.course(context.l10n, w)}\n${RoutineSummary.courseNames(w)}',
                 ),
                 isThreeLine: true,
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.play_arrow),
-                title: const Text('시작'),
+                title: Text(context.l10n.start),
                 onTap: () => close(() => _startCourse(course)),
               ),
               ListTile(
                 leading: const Icon(Icons.edit_outlined),
-                title: const Text('수정'),
+                title: Text(context.l10n.edit),
                 onTap: () => close(() => _editCourse(course, isNew: false)),
               ),
               ListTile(
                 leading: const Icon(Icons.copy_outlined),
-                title: const Text('복사해서 수정'),
+                title: Text(context.l10n.copyAndEdit),
                 onTap: () => close(
                   () => _editCourse(
                     course.copyWith(
                       id: _store.newCourseId(),
-                      name: _copyName(course.name),
+                      name: RoutineStore.copyName(
+                        course.name,
+                        context.l10n.copyName,
+                      ),
                     ),
                     isNew: true,
                   ),
@@ -347,7 +359,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
               ListTile(
                 leading: const Icon(Icons.delete_outline),
-                title: const Text('삭제'),
+                title: Text(context.l10n.delete),
                 onTap: () => close(() => _confirmDeleteCourse(course)),
               ),
             ],
@@ -355,13 +367,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       },
     );
-  }
-
-  static String _copyName(String name) {
-    final base = name.length > RoutineLimits.maxNameLength - 3
-        ? name.substring(0, RoutineLimits.maxNameLength - 3)
-        : name;
-    return '$base 복사';
   }
 
   /// 루틴 메뉴 (docs/03 3장 "루틴 메뉴")
@@ -381,34 +386,41 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             children: [
               ListTile(
                 title: Text(r.name),
-                subtitle: Text(RoutineSummary.of(r)),
+                subtitle: Text(RoutineSummary.of(context.l10n, r)),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.play_arrow),
-                title: const Text('시작'),
+                title: Text(context.l10n.start),
                 onTap: () => close(() => _start(r)),
               ),
               ListTile(
                 leading: Icon(fav ? Icons.star : Icons.star_border),
-                title: Text(fav ? '즐겨찾기 해제' : '즐겨찾기 추가'),
+                title: Text(
+                  fav ? context.l10n.favoriteRemove : context.l10n.favoriteAdd,
+                ),
                 onTap: () => close(() => _store.toggleFavorite(r.id)),
               ),
               if (!r.isPreset)
                 ListTile(
                   leading: const Icon(Icons.edit_outlined),
-                  title: const Text('수정'),
+                  title: Text(context.l10n.edit),
                   onTap: () => close(() => _edit(r, isNew: false)),
                 ),
               ListTile(
                 leading: const Icon(Icons.copy_outlined),
-                title: const Text('복사해서 수정'),
-                onTap: () => close(() => _edit(_store.copyOf(r), isNew: true)),
+                title: Text(context.l10n.copyAndEdit),
+                onTap: () => close(
+                  () => _edit(
+                    _store.copyOf(r, context.l10n.copyName),
+                    isNew: true,
+                  ),
+                ),
               ),
               if (!r.isPreset)
                 ListTile(
                   leading: const Icon(Icons.delete_outline),
-                  title: const Text('삭제'),
+                  title: Text(context.l10n.delete),
                   onTap: () => close(() => _confirmDelete(r)),
                 ),
             ],
@@ -485,7 +497,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           (r, i) => _ReorderTile(
             leading: _ModeBar(routine: r),
             title: r.name,
-            subtitle: RoutineSummary.of(r),
+            subtitle: RoutineSummary.of(context.l10n, r),
             index: i,
           ),
           move,
@@ -493,14 +505,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('순서 편집'),
+        title: Text(context.l10n.reorderTitle),
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
             onPressed: _exitReorder,
-            child: const Text(
-              '완료',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            child: Text(
+              context.l10n.done,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -511,29 +523,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
             child: Text(
-              '오른쪽 손잡이(≡)를 끌거나 항목을 길게 눌러 옮기세요. 같은 묶음 안에서만 옮길 수 있어요',
+              context.l10n.reorderHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
           if (courses.isNotEmpty) ...[
-            const _Section('코스'),
+            _Section(context.l10n.courses),
             list<Course>(
               courses,
               (c) => c.id,
               (c, i) => _ReorderTile(
                 leading: const _CourseMark(),
                 title: c.name,
-                subtitle: RoutineSummary.course(_store.workoutOf(c)),
+                subtitle: RoutineSummary.course(
+                  context.l10n,
+                  _store.workoutOf(c),
+                ),
                 index: i,
               ),
               _store.moveCourse,
             ),
           ],
           if (mine.isNotEmpty) ...[
-            const _Section('내 루틴'),
+            _Section(context.l10n.myRoutines),
             routines(mine, _store.moveMine),
           ],
-          const _Section('프리셋'),
+          _Section(context.l10n.presets),
           routines(presets, _store.movePreset),
         ],
       ),
@@ -560,11 +575,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           value: value,
           underline: const SizedBox.shrink(),
           onChanged: (s) => s == null ? null : onChanged(s),
-          items: const [
-            DropdownMenuItem(value: RoutineSort.custom, child: Text('직접 정렬')),
-            DropdownMenuItem(value: RoutineSort.recent, child: Text('최근 사용순')),
-            DropdownMenuItem(value: RoutineSort.name, child: Text('이름순')),
-            DropdownMenuItem(value: RoutineSort.created, child: Text('만든 순')),
+          items: [
+            DropdownMenuItem(
+              value: RoutineSort.custom,
+              child: Text(context.l10n.sortCustom),
+            ),
+            DropdownMenuItem(
+              value: RoutineSort.recent,
+              child: Text(context.l10n.sortRecent),
+            ),
+            DropdownMenuItem(
+              value: RoutineSort.name,
+              child: Text(context.l10n.sortName),
+            ),
+            DropdownMenuItem(
+              value: RoutineSort.created,
+              child: Text(context.l10n.sortCreated),
+            ),
           ],
         ),
       ],
@@ -575,7 +602,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         title: const Text('Fitness Timer'),
         actions: [
           IconButton(
-            tooltip: '설정',
+            tooltip: context.l10n.settings,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => const SettingsPage())),
@@ -629,12 +656,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               alignment: Alignment.centerLeft,
               child: ActionChip(
                 avatar: const Icon(Icons.card_giftcard, size: 18),
-                label: Text('무료 운동 ${ent.freeRemaining}회 남음'),
+                label: Text(context.l10n.freeRemaining(ent.freeRemaining)),
                 onPressed: () => PaywallPage.open(context),
               ),
             ),
           if (recent != null) ...[
-            const _Section('최근'),
+            _Section(context.l10n.recent),
             _RecentCard(
               routine: recent,
               locked: !ent.canStart(recent),
@@ -643,7 +670,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ],
           if (favorites.isNotEmpty) ...[
-            const _Section('즐겨찾기'),
+            _Section(context.l10n.favorites),
             SizedBox(
               height: 112,
               child: ListView.separated(
@@ -664,7 +691,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ],
           // 순서: 코스 → 내 루틴 → 프리셋 (docs/03 3장)
           if (courses.isNotEmpty) ...[
-            sortHeader('코스', _store.courseSort, _store.setCourseSort),
+            sortHeader(
+              context.l10n.courses,
+              _store.courseSort,
+              _store.setCourseSort,
+            ),
             for (final c in courses)
               _CourseTile(
                 course: c,
@@ -677,28 +708,35 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ],
           // 코스가 없으면 안내 (docs/03 3장)
           if (courses.isEmpty) ...[
-            const _Section('코스'),
+            _Section(context.l10n.courses),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
               child: Text(
-                mine.isEmpty ? '내 루틴을 먼저 만들면, 그 루틴들을 골라 코스로 묶을 수 있어요.' : '아래 "추가" 버튼으로 내 루틴을 골라 이어서 하는 코스를 만들어 보세요. 루틴 사이 휴식도 정할 수 있어요.',
+                mine.isEmpty
+                    ? context.l10n.courseEmptyNoRoutines
+                    : context.l10n.courseEmptyHint,
                 style: text.bodyMedium,
               ),
             ),
           ],
-          sortHeader('내 루틴', _store.sort, _store.setSort),
+          sortHeader(context.l10n.myRoutines, _store.sort, _store.setSort),
           if (mine.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Column(
                 children: [
-                  Text('자주 하는 운동을 루틴으로 저장해 보세요', style: text.bodyLarge),
+                  Text(context.l10n.routinesEmpty, style: text.bodyLarge),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.add),
-                    label: const Text('루틴 만들기'),
-                    onPressed: () =>
-                        _edit(EditRules.blank(_store.newId()), isNew: true),
+                    label: Text(context.l10n.createRoutine),
+                    onPressed: () => _edit(
+                      EditRules.blank(
+                        _store.newId(),
+                        context.l10n.defaultRoutineName,
+                      ),
+                      isNew: true,
+                    ),
                   ),
                 ],
               ),
@@ -713,7 +751,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 onMenu: () => _menu(r),
                 onLongPress: _enterReorder,
               ),
-          const _Section('프리셋'),
+          _Section(context.l10n.presets),
           for (final r in _store.presets)
             _RoutineTile(
               routine: r,
@@ -750,9 +788,12 @@ class _ReorderTile extends StatelessWidget {
       subtitle: Text(subtitle),
       trailing: ReorderableDragStartListener(
         index: index,
-        child: const Padding(
-          padding: EdgeInsets.all(8),
-          child: Icon(Icons.drag_handle_rounded, semanticLabel: '끌어서 옮기기'),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            Icons.drag_handle_rounded,
+            semanticLabel: context.l10n.dragToMove,
+          ),
         ),
       ),
     ),
@@ -796,7 +837,9 @@ class _StartButton extends StatelessWidget {
             ? Theme.of(context).colorScheme.onSurfaceVariant
             : Theme.of(context).colorScheme.onPrimary,
       ),
-      tooltip: locked ? '$name 잠김, 정식 버전에서 사용' : '$name 시작',
+      tooltip: locked
+          ? context.l10n.lockedNamed(name)
+          : context.l10n.startNamed(name),
       icon: Icon(locked ? Icons.lock_outline : Icons.play_arrow),
       onPressed: onStart,
     ),
@@ -846,9 +889,9 @@ class _RecentCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 4),
-                      Text(RoutineSummary.of(routine)),
+                      Text(RoutineSummary.of(context.l10n, routine)),
                       Text(
-                        RoutineSummary.estimate(routine),
+                        RoutineSummary.estimate(context.l10n, routine),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -903,7 +946,9 @@ class _FavoriteCard extends StatelessWidget {
               const Spacer(),
               Row(
                 children: [
-                  Expanded(child: Text(RoutineSummary.estimate(routine))),
+                  Expanded(
+                    child: Text(RoutineSummary.estimate(context.l10n, routine)),
+                  ),
                   _StartButton(
                     name: routine.name,
                     onStart: onStart,
@@ -961,7 +1006,7 @@ class _RoutineTile extends StatelessWidget {
         ],
       ),
       subtitle: Text(
-        '${RoutineSummary.of(routine)} · ${RoutineSummary.estimate(routine)}',
+        '${RoutineSummary.of(context.l10n, routine)} · ${RoutineSummary.estimate(context.l10n, routine)}',
       ),
       trailing: _StartButton(
         name: routine.name,
@@ -1076,7 +1121,7 @@ class _CourseTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          Text(RoutineSummary.course(workout)),
+          Text(RoutineSummary.course(context.l10n, workout)),
         ],
       ),
       isThreeLine: true,
@@ -1138,16 +1183,20 @@ class _GlassAddButton extends StatelessWidget {
               child: InkWell(
                 borderRadius: r,
                 onTap: onPressed,
-                child: const SizedBox(
+                child: SizedBox(
                   height: height,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_rounded, color: Colors.white, size: 24),
-                      SizedBox(width: 8),
+                      const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        '추가',
-                        style: TextStyle(
+                        context.l10n.add,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 17,
                           fontWeight: FontWeight.w600,

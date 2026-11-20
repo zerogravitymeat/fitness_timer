@@ -10,6 +10,7 @@ import '../../services/run/run_labels.dart';
 import '../common/routine_summary.dart';
 import '../edit/edit_page.dart' show pickTime;
 import '../edit/edit_rules.dart';
+import '../../l10n/l10n.dart';
 
 /// 코스 편집 결과. [start]가 true면 저장 후 바로 시작.
 class CourseEditResult {
@@ -105,15 +106,15 @@ class _CourseEditPageState extends State<CourseEditPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('변경 사항을 버릴까요?'),
+        title: Text(context.l10n.discardChangesTitle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('계속 편집'),
+            child: Text(context.l10n.keepEditing),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('버리기'),
+            child: Text(context.l10n.discard),
           ),
         ],
       ),
@@ -136,7 +137,11 @@ class _CourseEditPageState extends State<CourseEditPage> {
         if (await _confirmDiscard()) nav.pop();
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.isNew ? '새 코스' : '코스 편집')),
+        appBar: AppBar(
+          title: Text(
+            widget.isNew ? context.l10n.newCourse : context.l10n.editCourse,
+          ),
+        ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
@@ -148,21 +153,21 @@ class _CourseEditPageState extends State<CourseEditPage> {
                 controller: _name,
                 maxLength: RoutineLimits.maxNameLength,
                 decoration: InputDecoration(
-                  labelText: '이름',
-                  errorText: nameOk ? null : '이름을 입력해 주세요',
+                  labelText: context.l10n.name,
+                  errorText: nameOk ? null : context.l10n.nameRequired,
                 ),
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 20, 4, 4),
-              child: Text('루틴 순서', style: text.titleSmall),
+              child: Text(context.l10n.routineOrder, style: text.titleSmall),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
               child: Text(
                 _items.isEmpty
-                    ? '아래 버튼으로 이어서 할 루틴을 넣으세요'
-                    : '손잡이(≡)를 끌어 순서를 바꾸고, 사이의 휴식을 눌러 바꾸세요',
+                    ? context.l10n.courseOrderHintEmpty
+                    : context.l10n.courseOrderHint,
                 style: text.bodySmall,
               ),
             ),
@@ -207,30 +212,32 @@ class _CourseEditPageState extends State<CourseEditPage> {
                           ),
                         ),
                         title: Text(
-                          r?.name ?? '지워진 루틴',
+                          r?.name ?? context.l10n.deletedRoutine,
                           overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: r == null
                             ? null
                             : Text(
-                                '${RoutineSummary.of(r)} · ${RoutineSummary.estimate(r)}',
+                                '${RoutineSummary.of(context.l10n, r)} · ${RoutineSummary.estimate(context.l10n, r)}',
                               ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              tooltip: '${r?.name ?? '루틴'} 빼기',
+                              tooltip: context.l10n.removeNamed(
+                                r?.name ?? context.l10n.routine,
+                              ),
                               icon: const Icon(Icons.close_rounded),
                               onPressed: () =>
                                   setState(() => _items.removeAt(i)),
                             ),
                             ReorderableDragStartListener(
                               index: i,
-                              child: const Padding(
-                                padding: EdgeInsets.all(8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
                                 child: Icon(
                                   Icons.drag_handle_rounded,
-                                  semanticLabel: '끌어서 옮기기',
+                                  semanticLabel: context.l10n.dragToMove,
                                 ),
                               ),
                             ),
@@ -256,8 +263,8 @@ class _CourseEditPageState extends State<CourseEditPage> {
               icon: const Icon(Icons.add),
               label: Text(
                 _items.length >= CourseLimits.maxSteps
-                    ? '최대 ${CourseLimits.maxSteps}개까지 넣을 수 있어요'
-                    : '루틴 추가',
+                    ? context.l10n.maxSteps(CourseLimits.maxSteps)
+                    : context.l10n.addRoutine,
               ),
               onPressed: _items.length >= CourseLimits.maxSteps ? null : _add,
             ),
@@ -278,8 +285,8 @@ class _CourseEditPageState extends State<CourseEditPage> {
                 children: [
                   Text(
                     _items.isEmpty
-                        ? '루틴을 1개 이상 넣어 주세요'
-                        : RoutineSummary.course(workout),
+                        ? context.l10n.needOneRoutine
+                        : RoutineSummary.course(context.l10n, workout),
                     style: text.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontFeatures: tabularFigures,
@@ -296,7 +303,7 @@ class _CourseEditPageState extends State<CourseEditPage> {
                           onPressed: canSave
                               ? () => _finish(start: false)
                               : null,
-                          child: const Text('저장'),
+                          child: Text(context.l10n.save),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -308,7 +315,7 @@ class _CourseEditPageState extends State<CourseEditPage> {
                           onPressed: canSave
                               ? () => _finish(start: true)
                               : null,
-                          child: const Text('저장 후 시작'),
+                          child: Text(context.l10n.saveAndStart),
                         ),
                       ),
                     ],
@@ -353,10 +360,12 @@ class _RestChip extends StatelessWidget {
               color: color,
             ),
             label: Text(
-              none ? '휴식 없이 바로' : '휴식 ${RunLabels.duration(ms)}',
+              none
+                  ? context.l10n.noRest
+                  : context.l10n.restWith(RunLabels.duration(context.l10n, ms)),
               style: TextStyle(color: color),
             ),
-            tooltip: '루틴 사이 휴식 바꾸기',
+            tooltip: context.l10n.changeCourseRest,
             onPressed: onTap,
           ),
         ],
@@ -382,10 +391,13 @@ class _RestSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('루틴 사이 휴식', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              context.l10n.courseRest,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
             Text(
-              '"없음"이면 앞 루틴이 끝나자마자 다음 루틴을 시작해요',
+              context.l10n.courseRestNoneHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -395,18 +407,30 @@ class _RestSheet extends StatelessWidget {
               children: [
                 for (final ms in _choices)
                   ChoiceChip(
-                    label: Text(ms == 0 ? '없음' : RunLabels.duration(ms)),
+                    label: Text(
+                      ms == 0
+                          ? context.l10n.none
+                          : RunLabels.duration(context.l10n, ms),
+                    ),
                     selected: ms == current,
                     onSelected: (_) => Navigator.pop(context, ms),
                   ),
                 ChoiceChip(
                   label: Text(
-                    custom ? '직접 · ${RunLabels.duration(current)}' : '직접',
+                    custom
+                        ? context.l10n.customWith(
+                            RunLabels.duration(context.l10n, current),
+                          )
+                        : context.l10n.custom,
                   ),
                   selected: custom,
                   onSelected: (_) async {
                     final nav = Navigator.of(context);
-                    final v = await pickTime(context, '루틴 사이 휴식', current);
+                    final v = await pickTime(
+                      context,
+                      context.l10n.courseRest,
+                      current,
+                    );
                     if (v != null) nav.pop(v);
                   },
                 ),
@@ -429,7 +453,9 @@ class _RoutinePicker extends StatelessWidget {
     final mine = store.myRoutines;
     Widget tile(Routine r) => ListTile(
       title: Text(r.name),
-      subtitle: Text('${RoutineSummary.of(r)} · ${RoutineSummary.estimate(r)}'),
+      subtitle: Text(
+        '${RoutineSummary.of(context.l10n, r)} · ${RoutineSummary.estimate(context.l10n, r)}',
+      ),
       trailing: const Icon(Icons.add_circle_outline),
       onTap: () => Navigator.pop(context, r),
     );
@@ -447,17 +473,17 @@ class _RoutinePicker extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Text(
-              '루틴 추가',
+              context.l10n.addRoutine,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
           // 코스는 내 루틴을 조합해서 만든다 (docs/02 8-1장)
-          header('내 루틴'),
+          header(context.l10n.myRoutines),
           for (final r in mine) tile(r),
           if (mine.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('내 루틴이 없어요. 홈에서 루틴을 먼저 만들어 주세요.'),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(context.l10n.noMyRoutines),
             ),
           const SizedBox(height: 16),
         ],

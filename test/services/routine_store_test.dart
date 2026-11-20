@@ -88,13 +88,13 @@ void main() {
   test('복사해서 수정: 새 id, 프리셋 아님, 이름에 "복사"', () async {
     final s = newStore();
     await s.load();
-    final c = s.copyOf(Presets.tabata);
+    final c = s.copyOf(Presets.tabata, (n) => '$n 복사');
     expect(c.id, isNot(Presets.tabata.id));
     expect(c.isPreset, isFalse);
     expect(c.name, '타바타 복사');
     expect(c.workMs, Presets.tabata.workMs);
 
-    final long = s.copyOf(Routine(id: 'x', name: '가' * 20));
+    final long = s.copyOf(Routine(id: 'x', name: '가' * 20), (n) => '$n 복사');
     expect(long.name.length, lessThanOrEqualTo(RoutineLimits.maxNameLength));
   });
 

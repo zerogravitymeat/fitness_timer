@@ -14,6 +14,7 @@ import '../paywall/paywall_page.dart';
 import '../../services/run/run_labels.dart';
 import '../../services/run/run_protocol.dart';
 import '../../services/run/run_view.dart';
+import '../../l10n/l10n.dart';
 
 /// 기본 진행 화면 (docs/03_화면_설계.md 5장). 기능 확인용으로 단순하게 만든다.
 class RunPage extends StatefulWidget {
@@ -67,15 +68,15 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('운동을 끝낼까요?'),
+        title: Text(context.l10n.stopConfirmTitle),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('계속하기'),
+            child: Text(context.l10n.keepGoing),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('끝내기'),
+            child: Text(context.l10n.stopAction),
           ),
         ],
       ),
@@ -95,7 +96,10 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('타이머를 시작하지 못했어요', style: TextStyle(fontSize: 18)),
+              Text(
+                context.l10n.timerStartFailed,
+                style: TextStyle(fontSize: 18),
+              ),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () {
@@ -103,7 +107,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
                   _client.cancel();
                   Navigator.of(context).pop();
                 },
-                child: const Text('홈으로'),
+                child: Text(context.l10n.goHome),
               ),
             ],
           ),
@@ -115,7 +119,11 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
         v.segmentType == SegmentType.rest ||
         v.segmentType == SegmentType.setRest ||
         v.segmentType == SegmentType.courseRest;
-    final segName = RunLabels.segment(v.segmentType, isReps: v.isReps);
+    final segName = RunLabels.segment(
+      context.l10n,
+      v.segmentType,
+      isReps: v.isReps,
+    );
     final colors = PhaseColors.of(
       v.segmentType,
       isReps: v.isReps,
@@ -268,7 +276,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
         const SizedBox(height: 2),
         Text(
           v.segmentType == SegmentType.courseRest
-              ? '다음 ${RunLabels.coursePosition(v)}'
+              ? context.l10n.nextCoursePosition(RunLabels.coursePosition(v))
               : RunLabels.coursePosition(v),
           overflow: TextOverflow.ellipsis,
           style: style.copyWith(fontFeatures: tabularFigures),
@@ -284,7 +292,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
         GlassPill(
           child: Text(
             paused
-                ? '일시정지'
+                ? context.l10n.pause
                 : (v.isRepWork ? _phaseLabel(v.tempoPhase) : segName),
           ),
         ),
@@ -301,7 +309,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '${v.isRepWork ? '$segName · ' : ''}${RunLabels.progress(v)}',
+                '${v.isRepWork ? '$segName · ' : ''}${RunLabels.progress(context.l10n, v)}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
@@ -317,9 +325,16 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
               ),
               Row(
                 children: [
-                  Expanded(child: Text(RunLabels.next(v), style: _subStyle)),
+                  Expanded(
+                    child: Text(
+                      RunLabels.next(context.l10n, v),
+                      style: _subStyle,
+                    ),
+                  ),
                   Text(
-                    '전체 ${RunLabels.clock(v.remainingTotalMs)}',
+                    context.l10n.totalRemaining(
+                      RunLabels.clock(v.remainingTotalMs),
+                    ),
                     style: _subStyle,
                   ),
                 ],
@@ -344,8 +359,11 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: () => _client.send(RunProtocol.cmdAddRest, 10000),
-        child: const GlassPill(
-          child: Text('+10초', style: TextStyle(fontSize: 16, letterSpacing: 0)),
+        child: GlassPill(
+          child: Text(
+            context.l10n.plusTenSeconds,
+            style: const TextStyle(fontSize: 16, letterSpacing: 0),
+          ),
         ),
       ),
     ),
@@ -354,7 +372,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
   Widget _prevButton({double? height = 76}) => GlassButton(
     height: height,
     icon: Icons.skip_previous_rounded,
-    label: '이전',
+    label: context.l10n.previous,
     onPressed: () => _client.send(RunProtocol.cmdPrev),
   );
 
@@ -367,7 +385,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     primary: true,
     glowColor: glow,
     icon: paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-    label: paused ? '재개' : '일시정지',
+    label: paused ? context.l10n.resume : context.l10n.pause,
     onPressed: () =>
         _client.send(paused ? RunProtocol.cmdResume : RunProtocol.cmdPause),
   );
@@ -375,7 +393,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
   Widget _nextButton(RunView v, {double? height = 76}) => GlassButton(
     height: height,
     icon: v.isRepWork ? Icons.check_rounded : Icons.skip_next_rounded,
-    label: v.isRepWork ? '세트 완료' : '다음',
+    label: v.isRepWork ? context.l10n.setDone : context.l10n.next,
     onPressed: () => _client.send(RunProtocol.cmdNext),
   );
 
@@ -385,17 +403,17 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     child: TextButton(
       style: TextButton.styleFrom(foregroundColor: Colors.white),
       onPressed: _confirmStop,
-      child: const Text(
-        '운동 끝내기',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      child: Text(
+        context.l10n.endWorkout,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
   );
 
   String _phaseLabel(TempoPhase? p) => switch (p) {
-    TempoPhase.down => '내려가기',
-    TempoPhase.hold => '멈춤',
-    TempoPhase.up => '올라오기',
+    TempoPhase.down => context.l10n.phaseDown,
+    TempoPhase.hold => context.l10n.phaseHold,
+    TempoPhase.up => context.l10n.phaseUp,
     null => '',
   };
 }
@@ -550,9 +568,19 @@ class _TempoBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              part(0, down, '내려가기 ${RunLabels.duration(down)}', left),
-              if (hold > 0) part(down, hold, '멈춤', mid),
-              part(down + hold, up, '올라오기 ${RunLabels.duration(up)}', right),
+              part(
+                0,
+                down,
+                '${context.l10n.phaseDown} ${RunLabels.duration(context.l10n, down)}',
+                left,
+              ),
+              if (hold > 0) part(down, hold, context.l10n.phaseHold, mid),
+              part(
+                down + hold,
+                up,
+                '${context.l10n.phaseUp} ${RunLabels.duration(context.l10n, up)}',
+                right,
+              ),
             ],
           ),
           Positioned(
@@ -625,7 +653,7 @@ class _ResultPageState extends State<ResultPage> {
             ),
             const SizedBox(height: 20),
             Text(
-              done ? '운동 완료!' : '운동 종료',
+              done ? context.l10n.workoutComplete : context.l10n.workoutStopped,
               style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
@@ -643,7 +671,7 @@ class _ResultPageState extends State<ResultPage> {
               child: Column(
                 children: [
                   _StatRow(
-                    label: '총 시간',
+                    label: context.l10n.totalTime,
                     value: RunLabels.elapsed(result.totalActiveMs),
                   ),
                   if (done) ...[
@@ -656,14 +684,16 @@ class _ResultPageState extends State<ResultPage> {
                     ),
                     v.isCourse
                         ? _StatRow(
-                            label: '완료한 루틴',
+                            label: context.l10n.routinesDone,
                             value: '${v.partCount} / ${v.partCount}',
                           )
                         : _StatRow(
-                            label: v.isReps ? '완료한 세트' : '진행',
+                            label: v.isReps
+                                ? context.l10n.setsDone
+                                : context.l10n.progress,
                             value: v.isReps
                                 ? '${v.rounds} / ${v.rounds}'
-                                : RunLabels.progress(v),
+                                : RunLabels.progress(context.l10n, v),
                           ),
                   ],
                 ],
@@ -696,7 +726,7 @@ class _ResultPageState extends State<ResultPage> {
                 RunClient.instance.clearResult();
                 Navigator.of(context).pop();
               },
-              child: const Text('홈으로'),
+              child: Text(context.l10n.goHome),
             ),
           ],
         ),
@@ -748,7 +778,7 @@ class _TrialNotice extends StatelessWidget {
       case TrialNotice.remaining:
         return TextButton(
           onPressed: () => PaywallPage.open(context),
-          child: Text('무료 운동 $remaining회 남았어요 · 정식 버전 보기'),
+          child: Text(context.l10n.freeRemainingResult(remaining)),
         );
       case TrialNotice.ended:
         return GlassPanel(
@@ -757,15 +787,15 @@ class _TrialNotice extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '무료 체험을 모두 사용했어요',
+                context.l10n.trialUsedUp,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 6),
-              const Text('프리셋 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.'),
+              Text(context.l10n.trialUsedUpBody),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () => PaywallPage.open(context),
-                child: const Text('정식 버전 보기'),
+                child: Text(context.l10n.viewFullVersion),
               ),
             ],
           ),

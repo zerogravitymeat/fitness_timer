@@ -1,4 +1,5 @@
 import '../../engine/routine_compiler.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/routine.dart';
 import '../../models/workout.dart';
 import '../../services/run/run_labels.dart';
@@ -6,26 +7,29 @@ import '../../services/run/run_labels.dart';
 /// 루틴 요약 표기 (docs/03_화면_설계.md 3장 "루틴 항목")
 abstract final class RoutineSummary {
   /// 시간 모드: `20초/10초 × 8` (+ `× 2세트`), 횟수 모드: `12회 × 3세트 · 2-0-1`
-  static String of(Routine r) {
-    if (r.isReps) return '${r.targetReps}회 × ${r.rounds}세트 · ${r.tempo.label}';
+  static String of(AppLocalizations l, Routine r) {
+    if (r.isReps) return l.summaryReps(r.targetReps, r.rounds, r.tempo.label);
     final base =
-        '${RunLabels.duration(r.workMs)}/${RunLabels.duration(r.restMs)} × ${r.rounds}';
-    return r.sets > 1 ? '$base × ${r.sets}세트' : base;
+        '${RunLabels.duration(l, r.workMs)}/${RunLabels.duration(l, r.restMs)} × ${r.rounds}';
+    return r.sets > 1 ? l.summaryWithSets(base, r.sets) : base;
   }
 
   /// 1분 이상이면 "약 N분", 1분 미만이면 "N초"
-  static String estimate(Routine r) =>
-      estimateMs(RoutineCompiler.estimatedTotalMs(r));
+  static String estimate(AppLocalizations l, Routine r) =>
+      estimateMs(l, RoutineCompiler.estimatedTotalMs(r));
 
-  static String estimateMs(int ms) {
-    if (ms < 60000) return '${ms ~/ 1000}초';
-    return '약 ${(ms / 60000).round()}분';
+  static String estimateMs(AppLocalizations l, int ms) {
+    if (ms < 60000) return l.durationSeconds(ms ~/ 1000);
+    return l.estimateAbout((ms / 60000).round());
   }
 
   /// 코스: `루틴 3개 · 약 18분` (docs/03 3장 "코스 항목")
-  static String course(Workout w) => w.routines.isEmpty
-      ? '루틴 없음'
-      : '루틴 ${w.routines.length}개 · ${estimateMs(RoutineCompiler.estimatedWorkoutMs(w))}';
+  static String course(AppLocalizations l, Workout w) => w.routines.isEmpty
+      ? l.courseNoRoutines
+      : l.courseSummary(
+          w.routines.length,
+          estimateMs(l, RoutineCompiler.estimatedWorkoutMs(w)),
+        );
 
   /// 코스 안의 루틴 이름 나열: `타바타 → 플랭크 → 근력 세트`
   static String courseNames(Workout w) =>

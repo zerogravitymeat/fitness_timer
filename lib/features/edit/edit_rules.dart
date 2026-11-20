@@ -61,5 +61,5 @@ abstract final class EditRules {
   static bool actionCueAllowed(Tempo t) => t.repMs >= 2500;
 
   /// 새 루틴 기본값 (docs/02 2.1절)
-  static Routine blank(String id) => Routine(id: id, name: '내 루틴');
+  static Routine blank(String id, String name) => Routine(id: id, name: name);
 }
