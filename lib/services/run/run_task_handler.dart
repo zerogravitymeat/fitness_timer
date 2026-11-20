@@ -6,6 +6,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../engine/timer_core.dart';
 import '../../engine/cue_planner.dart';
+import '../../engine/cue_text.dart';
 import '../../l10n/l10n.dart';
 import '../../models/app_settings.dart';
 import '../../models/workout.dart';
@@ -48,6 +49,9 @@ class RunTaskHandler extends TaskHandler {
 
   /// 알림 문구. 서비스 isolate에는 BuildContext가 없어 기기 언어로 직접 찾는다.
   final _l = l10nFor(WidgetsBinding.instance.platformDispatcher.locale);
+
+  /// 음성 안내도 알림과 같은 언어로
+  late final _cueText = CueText.forLanguage(_l.localeName);
   TrialStore? _trial;
   int _lastSnapshotAt = 0;
   static const snapshotInterval = Duration(seconds: 5);
@@ -90,6 +94,7 @@ class RunTaskHandler extends TaskHandler {
         vibration: app.vibration,
         voice: app.voice,
         speechRate: app.speechSpeed.ttsRate,
+        ttsLanguage: _cueText.ttsLanguage,
       ),
     );
     await player.init(
@@ -103,7 +108,10 @@ class RunTaskHandler extends TaskHandler {
     final core = TimerCore.workout(
       workout: workout,
       clock: () => _stopwatch.elapsedMilliseconds,
-      settings: CueSettings(countdownSeconds: app.countdownSeconds),
+      settings: CueSettings(
+        countdownSeconds: app.countdownSeconds,
+        text: _cueText,
+      ),
     );
     _core = core;
     _handle(

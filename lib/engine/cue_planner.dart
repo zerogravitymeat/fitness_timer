@@ -1,18 +1,25 @@
 import '../models/routine.dart';
 import 'cue.dart';
-import 'korean_speech.dart';
+import 'cue_text.dart';
 import 'segment.dart';
 import 'tempo_clock.dart';
 
 /// 앱 전체 알림 설정 중 계획에 영향을 주는 값 (docs/02_기능_명세.md 6.3절)
 /// 소리·진동·음성 켜고 끄기는 계획이 아니라 재생하는 쪽에서 거른다.
 class CueSettings {
-  const CueSettings({this.countdownSeconds = 3})
-    : assert(
-        countdownSeconds == 0 || countdownSeconds == 3 || countdownSeconds == 5,
-      );
+  const CueSettings({
+    this.countdownSeconds = 3,
+    this.text = const KoreanCueText(),
+  }) : assert(
+         countdownSeconds == 0 ||
+             countdownSeconds == 3 ||
+             countdownSeconds == 5,
+       );
 
   final int countdownSeconds;
+
+  /// 음성 안내 언어
+  final CueText text;
 }
 
 /// 구간마다 언제 무엇을 알릴지 계획한다 (docs/02_기능_명세.md 6장, 3.3절).
@@ -32,6 +39,7 @@ abstract final class CuePlanner {
     bool announceName = false,
   }) {
     final cues = <Cue>[];
+    final text = settings.text;
 
     // ── 구간 시작
     cues.add(
@@ -40,12 +48,18 @@ abstract final class CuePlanner {
         kind: CueKind.segmentStart,
         sound: seg.type == SegmentType.prep ? null : CueSound.long,
         vibration: seg.type == SegmentType.prep ? null : CueVibration.long,
-        speech: _startSpeech(r, seg, durationMs, announceName: announceName),
+        speech: _startSpeech(
+          text,
+          r,
+          seg,
+          durationMs,
+          announceName: announceName,
+        ),
       ),
     );
 
     if (seg.isRepWork) {
-      _planReps(r, seg, cues);
+      _planReps(text, r, seg, cues);
     } else {
       // ── 종료 전 카운트다운 (시간으로 끝나는 구간만)
       for (var k = settings.countdownSeconds; k >= 1; k--) {
@@ -57,7 +71,7 @@ abstract final class CuePlanner {
               kind: CueKind.countdown,
               sound: CueSound.short,
               vibration: CueVibration.short,
-              speech: '$k',
+              speech: text.countdown(k),
             ),
           );
         }
@@ -67,7 +81,7 @@ abstract final class CuePlanner {
           Cue(
             offsetMs: durationMs ~/ 2,
             kind: CueKind.halfway,
-            speech: '절반 지났습니다',
+            speech: text.halfway,
           ),
         );
       }
@@ -76,7 +90,7 @@ abstract final class CuePlanner {
           Cue(
             offsetMs: durationMs - 10000,
             kind: CueKind.tenSecondsLeft,
-            speech: '10초 남았습니다',
+            speech: text.tenSecondsLeft,
           ),
         );
       }
@@ -84,7 +98,7 @@ abstract final class CuePlanner {
     return _mergeSameOffset(cues);
   }
 
-  static void _planReps(Routine r, Segment seg, List<Cue> cues) {
+  static void _planReps(CueText text, Routine r, Segment seg, List<Cue> cues) {
     final t = r.tempo;
     final target = seg.targetReps!;
     final withSpeech = r.cueStyle != CueStyle.beepOnly;
@@ -109,9 +123,9 @@ abstract final class CuePlanner {
               speech: !withAction
                   ? null
                   : switch (phase) {
-                      TempoPhase.down => '내려가고',
+                      TempoPhase.down => text.down,
                       TempoPhase.hold => null,
-                      TempoPhase.up => '올라오고',
+                      TempoPhase.up => text.up,
                     },
             ),
           );
@@ -131,8 +145,8 @@ abstract final class CuePlanner {
             speech: !withSpeech
                 ? null
                 : isLastReps
-                ? '마지막 3회'
-                : KoreanSpeech.nativeNumber(done),
+                ? text.lastReps
+                : text.repNumber(done),
           ),
         );
       }
@@ -140,6 +154,7 @@ abstract final class CuePlanner {
   }
 
   static String? _startSpeech(
+    CueText text,
     Routine r,
     Segment seg,
     int durationMs, {
@@ -150,51 +165,59 @@ abstract final class CuePlanner {
         // 횟수 모드는 운동 시작 때 음성이 없으므로 여기서 미리 알린다
         return r.isReps
             ? [
-                '준비하세요',
+                text.prepare,
                 if (announceName) r.name,
-                _nextReps(r, 1),
+                _reps(text, r, 1),
               ].join(', ')
-            : '준비하세요';
+            : text.prepare;
       case SegmentType.work:
         // 횟수 모드는 긴 비프만 낸다. 음성이 첫 회차와 겹치면
         // 사용자가 음성이 끝난 뒤에 움직여 회차가 하나씩 밀린다.
         if (seg.isRepWork) return null;
         final prefix = <String>[
           if (announceName && seg.isFirstWork) r.name,
-          if (r.effectiveSets > 1 && seg.round == 1) '${seg.set}세트',
-          if (r.rounds > 1) '${seg.round}라운드',
+          if (r.effectiveSets > 1 && seg.round == 1) text.setLabel(seg.set),
+          if (r.rounds > 1) text.roundLabel(seg.round),
         ];
-        return [...prefix, '운동 시작'].join(', ');
+        return [...prefix, text.workStart].join(', ');
       case SegmentType.rest:
         // 횟수 모드의 휴식은 "세트 간 휴식"으로 안내하고 다음 세트를 미리 알린다 (docs/02 6.2절)
         return r.isReps
-            ? '${seg.round}세트 완료, 휴식 ${KoreanSpeech.duration(durationMs)}, 다음 ${_nextReps(r, seg.round + 1)}'
-            : '휴식 ${KoreanSpeech.duration(durationMs)}';
+            ? [
+                text.setDone(seg.round),
+                text.rest(durationMs),
+                text.nextReps(_reps(text, r, seg.round + 1)),
+              ].join(', ')
+            : text.rest(durationMs);
       case SegmentType.setRest:
-        return '${seg.set}세트 완료, 휴식 ${KoreanSpeech.duration(durationMs)}';
+        return '${text.setDone(seg.set)}, ${text.rest(durationMs)}';
       case SegmentType.courseRest:
-        // 조사 문제가 없도록 "다음은 + 이름" 순서로
         return [
-          '휴식 ${KoreanSpeech.duration(durationMs)}, 다음은 ${r.name}',
-          if (r.isReps) _nextReps(r, 1),
+          text.rest(durationMs),
+          text.nextRoutine(r.name),
+          if (r.isReps) _reps(text, r, 1),
         ].join(', ');
     }
   }
 
   /// 횟수 모드에서 곧 할 세트 안내. 예: "2세트 15회", 세트가 하나면 "15회"
-  static String _nextReps(Routine r, int round) =>
-      r.rounds > 1 ? '$round세트 ${r.targetReps}회' : '${r.targetReps}회';
+  static String _reps(CueText text, Routine r, int round) =>
+      text.reps(r.rounds > 1 ? round : null, r.targetReps);
 
   /// 루틴이 끝났을 때 알림. 끝까지 했으면 실제로 걸린 시간을 읽고,
   /// 사용자가 중간에 끝냈으면 "운동 종료"만 짧게 알린다 (docs/03 6장).
-  static Cue finished(int totalActiveMs, {bool stopped = false}) => stopped
-      ? const Cue(offsetMs: 0, kind: CueKind.finished, speech: '운동 종료')
+  static Cue finished(
+    int totalActiveMs, {
+    bool stopped = false,
+    CueText text = const KoreanCueText(),
+  }) => stopped
+      ? Cue(offsetMs: 0, kind: CueKind.finished, speech: text.stopped)
       : Cue(
           offsetMs: 0,
           kind: CueKind.finished,
           sound: CueSound.done,
           vibration: CueVibration.double,
-          speech: '운동 완료. 총 ${KoreanSpeech.duration(totalActiveMs)}',
+          speech: text.completed(totalActiveMs),
         );
 
   static List<Cue> _mergeSameOffset(List<Cue> cues) {

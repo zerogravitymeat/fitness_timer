@@ -9,6 +9,7 @@ import '../../design/tokens.dart';
 import '../../models/app_settings.dart';
 import '../../models/entitlement.dart';
 import '../paywall/paywall_page.dart';
+import '../../engine/cue_text.dart';
 import '../../l10n/l10n.dart';
 
 /// S5 설정 (docs/03_화면_설계.md 7장). 기능 확인용 기본 UI.
@@ -23,13 +24,23 @@ class _SettingsPageState extends State<SettingsPage> {
   static const _system = MethodChannel('fitness_timer/system');
   final _tts = FlutterTts();
 
-  /// null = 확인 중
-  bool? _koreanVoice;
+  /// 음성 안내 언어 (화면 언어를 따른다)
+  CueText? _cueText;
+
+  /// 그 언어의 TTS 음성이 있는지. null = 확인 중
+  bool? _voiceAvailable;
 
   @override
-  void initState() {
-    super.initState();
-    _checkVoice();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final text = CueText.forLanguage(
+      Localizations.localeOf(context).languageCode,
+    );
+    if (text.ttsLanguage != _cueText?.ttsLanguage) {
+      _cueText = text;
+      _voiceAvailable = null;
+      _checkVoice(text.ttsLanguage);
+    }
   }
 
   @override
@@ -38,18 +49,18 @@ class _SettingsPageState extends State<SettingsPage> {
     super.dispose();
   }
 
-  Future<void> _checkVoice() async {
+  Future<void> _checkVoice(String language) async {
     bool ok;
     try {
-      ok = await _tts.isLanguageAvailable('ko-KR') == true;
+      ok = await _tts.isLanguageAvailable(language) == true;
     } catch (_) {
       ok = false;
     }
-    if (mounted) setState(() => _koreanVoice = ok);
+    if (mounted) setState(() => _voiceAvailable = ok);
   }
 
   Future<void> _preview(AppSettings s) async {
-    await _tts.setLanguage('ko-KR');
+    await _tts.setLanguage(_cueText!.ttsLanguage);
     await _tts.setSpeechRate(s.speechSpeed.ttsRate);
     await _tts.speak(context.l10n.ttsPreviewText);
   }
@@ -152,19 +163,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     trailing: IconButton(
                       tooltip: context.l10n.previewVoice,
                       icon: const Icon(Icons.volume_up_outlined),
-                      onPressed: _koreanVoice == true
+                      onPressed: _voiceAvailable == true
                           ? () => _preview(s)
                           : null,
                     ),
                   ),
                   ListTile(
                     title: Text(context.l10n.voiceData),
-                    subtitle: Text(switch (_koreanVoice) {
+                    subtitle: Text(switch (_voiceAvailable) {
                       null => context.l10n.checking,
                       true => context.l10n.available,
                       false => context.l10n.voiceMissing,
                     }),
-                    trailing: _koreanVoice == false
+                    trailing: _voiceAvailable == false
                         ? TextButton(
                             onPressed: _openTtsSettings,
                             child: Text(context.l10n.openTtsSettings),

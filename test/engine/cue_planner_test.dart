@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fitness_timer/engine/cue.dart';
 import 'package:fitness_timer/engine/cue_planner.dart';
+import 'package:fitness_timer/engine/cue_text.dart';
 import 'package:fitness_timer/engine/routine_compiler.dart';
 import 'package:fitness_timer/engine/segment.dart';
 import 'package:fitness_timer/models/presets.dart';
@@ -239,6 +240,47 @@ void main() {
       );
       final w = RoutineCompiler.compile(r).firstWhere((e) => e.isRepWork);
       expect(_plan(r, w).any((c) => c.kind == CueKind.lastReps), isFalse);
+    });
+  });
+
+  group('영어 음성 안내', () {
+    const en = CueSettings(text: EnglishCueText());
+    final segs = RoutineCompiler.compile(Presets.strength);
+
+    test('언어 코드로 고르고, 지원하지 않으면 영어', () {
+      expect(CueText.forLanguage('ko'), isA<KoreanCueText>());
+      expect(CueText.forLanguage('en'), isA<EnglishCueText>());
+      expect(CueText.forLanguage('fr'), isA<EnglishCueText>());
+    });
+
+    test('횟수 모드: 준비·휴식에서 다음 세트, 회차는 숫자 그대로', () {
+      expect(
+        _plan(Presets.strength, segs[0], settings: en).first.speech,
+        'Get ready, Set 1, 15 reps',
+      );
+      expect(
+        _plan(Presets.strength, segs[2], settings: en).first.speech,
+        'Set 1 done, Rest 1 minute 30 seconds, Next, Set 2, 15 reps',
+      );
+      final s = _speech(_plan(Presets.strength, segs[1], settings: en));
+      expect(s[3000], '1');
+      expect(s[36000], 'Last 3');
+    });
+
+    test('시간 모드와 완료 안내', () {
+      final tabata = RoutineCompiler.compile(Presets.tabata);
+      expect(
+        _plan(Presets.tabata, tabata[1], settings: en).first.speech,
+        'Round 1, Go',
+      );
+      expect(
+        CuePlanner.finished(750000, text: const EnglishCueText()).speech,
+        'Workout complete. Total 12 minutes 30 seconds',
+      );
+      expect(
+        CuePlanner.finished(61000, text: const EnglishCueText()).speech,
+        'Workout complete. Total 1 minute 1 second',
+      );
     });
   });
 

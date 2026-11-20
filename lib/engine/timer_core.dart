@@ -331,7 +331,7 @@ class TimerCore {
               tempoPhase: TempoPhase.down,
               sound: CueSound.low,
               speech: routine.cueStyle == CueStyle.actionAndNumbers
-                  ? '내려가고'
+                  ? settings.text.down
                   : null,
             ),
             segmentIndex: _index,
@@ -473,7 +473,11 @@ class TimerCore {
       Finished(
         totalActiveMs: totalActive,
         stopped: stopped,
-        cue: CuePlanner.finished(totalActive, stopped: stopped),
+        cue: CuePlanner.finished(
+          totalActive,
+          stopped: stopped,
+          text: settings.text,
+        ),
       ),
     );
   }

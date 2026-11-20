@@ -12,6 +12,7 @@ class CuePlayerSettings {
     this.vibration = true,
     this.voice = true,
     this.speechRate = 0.5,
+    this.ttsLanguage = 'ko-KR',
   });
 
   final bool sound;
@@ -20,6 +21,9 @@ class CuePlayerSettings {
 
   /// flutter_tts 기준 Android 보통 속도 0.5
   final double speechRate;
+
+  /// TTS 언어 (예: "ko-KR", "en-US")
+  final String ttsLanguage;
 }
 
 /// 엔진이 낸 [Cue]를 실제 소리·진동·음성으로 재생한다.
@@ -90,9 +94,9 @@ class CuePlayer {
       final tts = FlutterTts();
       // 일부 기기에서 TTS 엔진 응답이 늦거나 오지 않을 수 있다
       final available = await tts
-          .isLanguageAvailable('ko-KR')
+          .isLanguageAvailable(settings.ttsLanguage)
           .timeout(const Duration(seconds: 3));
-      await tts.setLanguage('ko-KR');
+      await tts.setLanguage(settings.ttsLanguage);
       await tts.setSpeechRate(settings.speechRate);
       await tts.setQueueMode(0); // flush: 새 안내가 이전 안내를 끊는다
       await tts.awaitSpeakCompletion(false);
