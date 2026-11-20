@@ -26,6 +26,7 @@ class RoutineData {
     List<Course>? courses,
     List<String>? courseOrder,
     this.sort = RoutineSort.recent,
+    this.courseSort = RoutineSort.recent,
   }) : routines = routines ?? [],
        courses = courses ?? [],
        courseOrder = courseOrder ?? [],
@@ -60,6 +61,9 @@ class RoutineData {
   final List<String> courseOrder;
 
   RoutineSort sort;
+
+  /// 코스 목록 정렬 (내 루틴 정렬과 따로)
+  RoutineSort courseSort;
 }
 
 /// 내 루틴을 JSON 파일 하나에 저장한다 (docs/05_기술_설계.md 5.1절).
@@ -113,7 +117,12 @@ class RoutineRepository {
     ],
     'courseOrder': d.courseOrder,
     'sort': d.sort.name,
+    'courseSort': d.courseSort.name,
   };
+
+  static RoutineSort _sort(Object? v) =>
+      RoutineSort.values.where((e) => e.name == v).firstOrNull ??
+      RoutineSort.recent;
 
   static List<String> _strings(Object? v) => [
     for (final e in (v is List ? v : const []))
@@ -159,9 +168,8 @@ class RoutineRepository {
       presetOrder: _strings(j['presetOrder']),
       courses: courses,
       courseOrder: _strings(j['courseOrder']),
-      sort:
-          RoutineSort.values.where((e) => e.name == j['sort']).firstOrNull ??
-          RoutineSort.recent,
+      sort: _sort(j['sort']),
+      courseSort: _sort(j['courseSort']),
     );
   }
 }

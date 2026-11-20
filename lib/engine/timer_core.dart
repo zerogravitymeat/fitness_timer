@@ -161,7 +161,8 @@ class TimerCore {
     this.staleCueMs = 1000,
     this.prevRestartThresholdMs = 3000,
   }) : workout = workout.normalized(),
-       segments = RoutineCompiler.compileWorkout(workout);
+       // 휴식 길이도 허용 범위로 맞춘 값으로 펼친다 (파일·전달 값이 손상됐을 수 있다)
+       segments = RoutineCompiler.compileWorkout(workout.normalized());
 
   /// 허용 범위로 맞춘 운동 ([Workout.normalized])
   final Workout workout;

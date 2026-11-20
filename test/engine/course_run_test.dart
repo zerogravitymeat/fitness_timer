@@ -149,6 +149,18 @@ void main() {
     expect(ended.canStartWorkout(Workout.single(plank)), isFalse);
   });
 
+  test('저장 값이 손상돼 휴식이 범위를 넘어도 30분으로 자른다', () {
+    final w = Workout.fromJson({
+      ...course.toJson(),
+      'restsMs': [999999999],
+    });
+    final core = TimerCore.workout(workout: w, clock: () => now);
+    final rest = core.segments.firstWhere(
+      (s) => s.type == SegmentType.courseRest,
+    );
+    expect(rest.durationMs, CourseLimits.maxRestMs);
+  });
+
   group('RoutineStore 코스', () {
     late Directory dir;
     setUp(() async => dir = await Directory.systemTemp.createTemp('course'));
@@ -178,6 +190,14 @@ void main() {
       final b = RoutineStore(RoutineRepository(dir), now: () => t);
       await b.load();
       expect(b.courses.map((c) => c.id), ['c1', 'c2']);
+      expect(b.courseSort, RoutineSort.custom); // 옮기면 직접 정렬
+      expect(b.sort, RoutineSort.recent); // 내 루틴 정렬과는 따로
+      await b.setCourseSort(RoutineSort.name);
+      expect(b.courses.map((c) => c.name), ['둘째 코스', '첫 코스']);
+      t = 3000;
+      await b.markUsed('c2');
+      await b.setCourseSort(RoutineSort.recent);
+      expect(b.courses.map((c) => c.id), ['c2', 'c1']);
       final c1 = b.courseById('c1')!;
       expect(c1.steps.first.restAfterMs, 0);
       expect(b.workoutOf(c1).routines.map((r) => r.name), ['플랭크', '타바타']);

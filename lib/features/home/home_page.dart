@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -232,6 +234,45 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (res == null) return;
     await _store.saveCourse(res.course);
     if (res.start && mounted) await _startCourse(res.course);
+  }
+
+  /// 맨 아래 "추가": 새 루틴 / 새 코스 고르기
+  void _addMenu(bool hasMine) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (c) {
+        void close(VoidCallback then) {
+          Navigator.pop(c);
+          then();
+        }
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.timer_outlined),
+                title: const Text('새 루틴'),
+                subtitle: const Text('운동 방식과 시간·횟수를 정해 만들어요'),
+                onTap: () => close(
+                  () => _edit(EditRules.blank(_store.newId()), isNew: true),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.playlist_add),
+                title: const Text('새 코스'),
+                // 코스는 내 루틴을 조합해서 만든다. 내 루틴이 없으면 만들 수 없다.
+                subtitle: Text(
+                  hasMine ? '내 루틴을 골라 이어서 하는 묶음을 만들어요' : '내 루틴을 먼저 만들어 주세요',
+                ),
+                enabled: hasMine,
+                onTap: () => close(_newCourse),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _newCourse() =>
@@ -488,12 +529,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               _store.moveCourse,
             ),
           ],
-          const _Section('프리셋'),
-          routines(presets, _store.movePreset),
           if (mine.isNotEmpty) ...[
             const _Section('내 루틴'),
             routines(mine, _store.moveMine),
           ],
+          const _Section('프리셋'),
+          routines(presets, _store.movePreset),
         ],
       ),
     );
@@ -507,14 +548,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final courses = _store.courses;
     final text = Theme.of(context).textTheme;
 
-    Widget courseHeader() => Row(
+    // 섹션 제목 + 정렬 선택 (내 루틴, 코스)
+    Widget sortHeader(
+      String title,
+      RoutineSort value,
+      Future<void> Function(RoutineSort) onChanged,
+    ) => Row(
       children: [
-        const Expanded(child: _Section('코스')),
-        TextButton.icon(
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('새 코스'),
-          // 코스는 내 루틴을 조합해서 만든다. 내 루틴이 없으면 만들 수 없다.
-          onPressed: mine.isEmpty ? null : _newCourse,
+        Expanded(child: _Section(title)),
+        DropdownButton<RoutineSort>(
+          value: value,
+          underline: const SizedBox.shrink(),
+          onChanged: (s) => s == null ? null : onChanged(s),
+          items: const [
+            DropdownMenuItem(value: RoutineSort.custom, child: Text('직접 정렬')),
+            DropdownMenuItem(value: RoutineSort.recent, child: Text('최근 사용순')),
+            DropdownMenuItem(value: RoutineSort.name, child: Text('이름순')),
+            DropdownMenuItem(value: RoutineSort.created, child: Text('만든 순')),
+          ],
         ),
       ],
     );
@@ -531,13 +582,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: '새 루틴 만들기',
-        onPressed: () => _edit(EditRules.blank(_store.newId()), isNew: true),
-        child: const Icon(Icons.add),
+      // 맨 아래 가로 유리 버튼: 루틴이나 코스 추가 (docs/03 3장).
+      // 목록이 버튼 뒤로 지나가도록 본문을 아래까지 늘린다.
+      extendBody: true,
+      // 버튼 뒤로는 목록이 서서히 사라지게 (시스템 내비게이션 바 뒤까지 덮는다)
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const [0, 0.45, 1],
+            colors: [
+              AppColors.bgBase.withValues(alpha: 0),
+              AppColors.bgBase.withValues(alpha: 0.80),
+              AppColors.bgBase.withValues(alpha: 0.95),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
+            child: _GlassAddButton(onPressed: () => _addMenu(mine.isNotEmpty)),
+          ),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+        // 마지막 항목이 추가 버튼에 가리지 않게
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
         children: [
           // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
           if (ent.inTrial)
@@ -578,8 +649,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
             ),
           ],
+          // 순서: 코스 → 내 루틴 → 프리셋 (docs/03 3장)
           if (courses.isNotEmpty) ...[
-            courseHeader(),
+            sortHeader('코스', _store.courseSort, _store.setCourseSort),
             for (final c in courses)
               _CourseTile(
                 course: c,
@@ -590,41 +662,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 onLongPress: _enterReorder,
               ),
           ],
-          const _Section('프리셋'),
-          for (final r in _store.presets)
-            _RoutineTile(
-              routine: r,
-              locked: !ent.canStart(r),
-              favorite: _store.isFavorite(r.id),
-              onStart: () => _start(r),
-              onMenu: () => _menu(r),
-              onLongPress: _enterReorder,
-            ),
-          Row(
-            children: [
-              const Expanded(child: _Section('내 루틴')),
-              DropdownButton<RoutineSort>(
-                value: _store.sort,
-                underline: const SizedBox.shrink(),
-                onChanged: (s) => s == null ? null : _store.setSort(s),
-                items: const [
-                  DropdownMenuItem(
-                    value: RoutineSort.custom,
-                    child: Text('직접 정렬'),
-                  ),
-                  DropdownMenuItem(
-                    value: RoutineSort.recent,
-                    child: Text('최근 사용순'),
-                  ),
-                  DropdownMenuItem(value: RoutineSort.name, child: Text('이름순')),
-                  DropdownMenuItem(
-                    value: RoutineSort.created,
-                    child: Text('만든 순'),
-                  ),
-                ],
+          // 코스가 없으면 안내 (docs/03 3장)
+          if (courses.isEmpty) ...[
+            const _Section('코스'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+              child: Text(
+                mine.isEmpty ? '내 루틴을 먼저 만들면, 그 루틴들을 골라 코스로 묶을 수 있어요.' : '아래 "추가" 버튼으로 내 루틴을 골라 이어서 하는 코스를 만들어 보세요. 루틴 사이 휴식도 정할 수 있어요.',
+                style: text.bodyMedium,
               ),
-            ],
-          ),
+            ),
+          ],
+          sortHeader('내 루틴', _store.sort, _store.setSort),
           if (mine.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -651,19 +700,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 onMenu: () => _menu(r),
                 onLongPress: _enterReorder,
               ),
-          // 코스가 없으면 맨 아래에서 소개 (docs/03 3장)
-          if (courses.isEmpty) ...[
-            courseHeader(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-              child: Text(
-                mine.isEmpty
-                    ? '내 루틴을 먼저 만들면, 그 루틴들을 골라 코스로 묶을 수 있어요.'
-                    : '내 루틴을 골라 이어서 하는 코스로 묶어 보세요. 루틴 사이 휴식도 정할 수 있어요.',
-                style: text.bodyMedium,
-              ),
+          const _Section('프리셋'),
+          for (final r in _store.presets)
+            _RoutineTile(
+              routine: r,
+              locked: !ent.canStart(r),
+              favorite: _store.isFavorite(r.id),
+              onStart: () => _start(r),
+              onMenu: () => _menu(r),
+              onLongPress: _enterReorder,
             ),
-          ],
         ],
       ),
     );
@@ -1008,10 +1054,17 @@ class _CourseTile extends StatelessWidget {
             ? TextStyle(color: Theme.of(context).disabledColor)
             : null,
       ),
-      subtitle: Text(
-        '${RoutineSummary.courseNames(workout)}\n${RoutineSummary.course(workout)}',
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
+      // 루틴 순서는 한 줄로 줄이고, 루틴 수·예상 시간은 항상 보이게
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            RoutineSummary.courseNames(workout),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(RoutineSummary.course(workout)),
+        ],
       ),
       isThreeLine: true,
       trailing: _StartButton(
@@ -1021,4 +1074,75 @@ class _CourseTile extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// 홈 맨 아래 "추가" 버튼: 블러 유리 + 위쪽 하이라이트 (docs/04 3장).
+/// 화면에 하나뿐이라 BackdropFilter를 써도 부담이 적다.
+class _GlassAddButton extends StatelessWidget {
+  const _GlassAddButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = BorderRadius.circular(AppRadius.button);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: r,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x59000000),
+            blurRadius: 28,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: r,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: r,
+              // 위는 조금 밝고 아래는 투명한 유리
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.20),
+                  Colors.white.withValues(alpha: 0.06),
+                ],
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                borderRadius: r,
+                onTap: onPressed,
+                child: const SizedBox(
+                  height: 56,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_rounded, color: Colors.white, size: 24),
+                      SizedBox(width: 8),
+                      Text(
+                        '추가',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -28,27 +28,38 @@ class RoutineStore extends ChangeNotifier {
   RoutineSort get sort => _d.sort;
 
   /// 정렬된 내 루틴
-  List<Routine> get myRoutines {
-    final list = [..._d.routines];
-    switch (_d.sort) {
+  List<Routine> get myRoutines =>
+      _sorted(_d.routines, (r) => r.id, (r) => r.name, _d.sort, _d.customOrder);
+
+  /// 내 루틴·코스 공통 정렬 (docs/02 8장)
+  List<T> _sorted<T>(
+    List<T> items,
+    String Function(T) id,
+    String Function(T) name,
+    RoutineSort sort,
+    List<String> customOrder,
+  ) {
+    final list = [...items];
+    int created(T e) => _d.createdAt[id(e)] ?? 0;
+    switch (sort) {
       case RoutineSort.recent:
-        // 한 번도 안 쓴 루틴은 만든 순서대로 뒤에
+        // 한 번도 안 쓴 항목은 만든 순서대로 뒤에
         list.sort((a, b) {
-          final c = (_d.lastUsed[b.id] ?? 0).compareTo(_d.lastUsed[a.id] ?? 0);
-          return c != 0 ? c : _created(b).compareTo(_created(a));
+          final c = (_d.lastUsed[id(b)] ?? 0).compareTo(
+            _d.lastUsed[id(a)] ?? 0,
+          );
+          return c != 0 ? c : created(b).compareTo(created(a));
         });
       case RoutineSort.name:
-        list.sort((a, b) => a.name.compareTo(b.name));
+        list.sort((a, b) => name(a).compareTo(name(b)));
       case RoutineSort.created:
-        list.sort((a, b) => _created(b).compareTo(_created(a)));
+        list.sort((a, b) => created(b).compareTo(created(a)));
       case RoutineSort.custom:
-        // 직접 정한 순서. 순서에 없는 루틴(나중에 만든 것)은 맨 위에 최신순으로
-        final pos = {for (final (i, id) in _d.customOrder.indexed) id: i};
+        // 직접 정한 순서. 순서에 없는 항목(나중에 만든 것)은 맨 위에 최신순으로
+        final pos = {for (final (i, x) in customOrder.indexed) x: i};
         list.sort((a, b) {
-          final pa = pos[a.id], pb = pos[b.id];
-          if (pa == null && pb == null) {
-            return _created(b).compareTo(_created(a));
-          }
+          final pa = pos[id(a)], pb = pos[id(b)];
+          if (pa == null && pb == null) return created(b).compareTo(created(a));
           if (pa == null) return -1;
           if (pb == null) return 1;
           return pa.compareTo(pb);
@@ -90,8 +101,6 @@ class RoutineStore extends ChangeNotifier {
     _d.sort = RoutineSort.custom;
     await _commit();
   }
-
-  int _created(Routine r) => _d.createdAt[r.id] ?? 0;
 
   List<Routine> get all => [...Presets.all, ..._d.routines];
 
@@ -185,19 +194,20 @@ class RoutineStore extends ChangeNotifier {
 
   // ── 코스 (docs/02 8-1장) ─────────────────────────
 
-  /// 코스 목록 (직접 정한 순서. 순서에 없는 코스는 맨 위에 최신순)
-  List<Course> get courses {
-    final pos = {for (final (i, id) in _d.courseOrder.indexed) id: i};
-    final list = [..._d.courses];
-    int created(Course c) => _d.createdAt[c.id] ?? 0;
-    list.sort((a, b) {
-      final pa = pos[a.id], pb = pos[b.id];
-      if (pa == null && pb == null) return created(b).compareTo(created(a));
-      if (pa == null) return -1;
-      if (pb == null) return 1;
-      return pa.compareTo(pb);
-    });
-    return list;
+  RoutineSort get courseSort => _d.courseSort;
+
+  /// 정렬된 코스 (내 루틴과 같은 4가지 정렬, 따로 선택)
+  List<Course> get courses => _sorted(
+    _d.courses,
+    (c) => c.id,
+    (c) => c.name,
+    _d.courseSort,
+    _d.courseOrder,
+  );
+
+  Future<void> setCourseSort(RoutineSort s) async {
+    _d.courseSort = s;
+    await _commit();
   }
 
   Course? courseById(String id) =>
@@ -240,6 +250,7 @@ class RoutineStore extends ChangeNotifier {
     _d.courseOrder
       ..clear()
       ..addAll(ids);
+    _d.courseSort = RoutineSort.custom;
     await _commit();
   }
 

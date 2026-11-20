@@ -454,6 +454,11 @@ class _RoutinePicker extends StatelessWidget {
           // 코스는 내 루틴을 조합해서 만든다 (docs/02 8-1장)
           header('내 루틴'),
           for (final r in mine) tile(r),
+          if (mine.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('내 루틴이 없어요. 홈에서 루틴을 먼저 만들어 주세요.'),
+            ),
           const SizedBox(height: 16),
         ],
       ),
