@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# 서명 키 (절대 커밋하지 않는다)
+/keys/
+*.jks
+*.keystore
+key.properties
