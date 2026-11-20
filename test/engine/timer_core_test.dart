@@ -324,7 +324,7 @@ void main() {
       final e = core.prev();
       expect(e.whereType<SegmentStarted>().single.segment.isRepWork, isTrue);
       expect(core.snapshot().tempo!.completedReps, 0);
-      expect(speeches(e), ['1세트, 12회 시작']);
+      expect(speeches(e), ['1세트, 15회 시작']);
     });
 
     test('동작 + 숫자: 재개하면 "내려가고"를 다시 읽는다', () {
@@ -352,10 +352,10 @@ void main() {
     test('세트 간 휴식 중 이전(3초 이내) → 직전 운동 구간을 1회차부터', () {
       final core = TimerCore(routine: Presets.strength, clock: clock.call);
       core.start();
-      run(core, clock, 10000 + 36000 + 1000); // 휴식 1초째
+      run(core, clock, 10000 + 45000 + 1000); // 휴식 1초째
       final e = core.prev();
       expect(e.whereType<SegmentStarted>().single.segment.isRepWork, isTrue);
-      expect(core.snapshot().tempo!.currentRep(12), 1);
+      expect(core.snapshot().tempo!.currentRep(15), 1);
     });
   });
 

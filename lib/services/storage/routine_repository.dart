@@ -4,7 +4,14 @@ import 'dart:io';
 import '../../models/routine.dart';
 
 /// 내 루틴 목록 정렬 (docs/02_기능_명세.md 8장)
-enum RoutineSort { recent, name, created }
+enum RoutineSort {
+  recent,
+  name,
+  created,
+
+  /// 사용자가 끌어서 정한 순서
+  custom,
+}
 
 /// 파일에 저장되는 내용 전체
 class RoutineData {
@@ -13,8 +20,12 @@ class RoutineData {
     Map<String, int>? createdAt,
     Set<String>? favorites,
     Map<String, int>? lastUsed,
+    List<String>? customOrder,
+    List<String>? presetOrder,
     this.sort = RoutineSort.recent,
   }) : routines = routines ?? [],
+       customOrder = customOrder ?? [],
+       presetOrder = presetOrder ?? [],
        createdAt = createdAt ?? {},
        favorites = favorites ?? {},
        lastUsed = lastUsed ?? {};
@@ -30,6 +41,12 @@ class RoutineData {
 
   /// 루틴 id → 마지막으로 시작한 시각 (epoch ms). 프리셋 id도 들어갈 수 있다.
   final Map<String, int> lastUsed;
+
+  /// 내 루틴을 직접 정렬했을 때의 순서 (루틴 id)
+  final List<String> customOrder;
+
+  /// 프리셋 표시 순서 (프리셋 id). 비어 있으면 기본 순서.
+  final List<String> presetOrder;
 
   RoutineSort sort;
 }
@@ -77,8 +94,15 @@ class RoutineRepository {
     ],
     'favorites': d.favorites.toList()..sort(),
     'lastUsed': d.lastUsed,
+    'customOrder': d.customOrder,
+    'presetOrder': d.presetOrder,
     'sort': d.sort.name,
   };
+
+  static List<String> _strings(Object? v) => [
+    for (final e in (v is List ? v : const []))
+      if (e is String) e,
+  ];
 
   static RoutineData _decode(Map<String, Object?> j) {
     final routines = <Routine>[];
@@ -106,6 +130,8 @@ class RoutineRepository {
           if (f is String) f,
       },
       lastUsed: lastUsed,
+      customOrder: _strings(j['customOrder']),
+      presetOrder: _strings(j['presetOrder']),
       sort:
           RoutineSort.values.where((e) => e.name == j['sort']).firstOrNull ??
           RoutineSort.recent,

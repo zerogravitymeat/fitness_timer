@@ -38,7 +38,7 @@ abstract final class Presets {
     isPreset: true,
     endCondition: EndCondition.reps,
     prepMs: 10000,
-    targetReps: 12,
+    targetReps: 15,
     tempo: Tempo.normal,
     restMs: 90000,
     rounds: 3,

@@ -122,4 +122,48 @@ void main() {
     final text = await File('${dir.path}/routines.json').readAsString();
     expect(text, contains('"schemaVersion":1'));
   });
+
+  test('프리셋 순서 바꾸기: 저장 후 다시 불러와도 유지', () async {
+    final s = newStore();
+    await s.load();
+    expect(s.presets.map((e) => e.id), Presets.all.map((e) => e.id));
+    await s.movePreset(3, 0); // 근력 세트를 맨 위로
+    expect(s.presets.first.id, Presets.strength.id);
+    expect(s.presets.length, 4);
+
+    final again = newStore();
+    await again.load();
+    expect(again.presets.map((e) => e.id), [
+      Presets.strength.id,
+      Presets.tabata.id,
+      Presets.hiit.id,
+      Presets.plank.id,
+    ]);
+  });
+
+  test('내 루틴 순서 바꾸기: 직접 정렬로 바뀌고 유지, 새 루틴은 맨 위', () async {
+    final s = newStore();
+    await s.load();
+    now = 1;
+    await s.save(r('a', '가'));
+    now = 2;
+    await s.save(r('b', '나'));
+    now = 3;
+    await s.save(r('c', '다'));
+    await s.setSort(RoutineSort.name); // 가 나 다
+    await s.moveMine(0, 2); // 가를 맨 아래로 → 나 다 가
+    expect(s.sort, RoutineSort.custom);
+    expect(s.myRoutines.map((e) => e.id), ['b', 'c', 'a']);
+
+    final again = newStore();
+    await again.load();
+    expect(again.myRoutines.map((e) => e.id), ['b', 'c', 'a']);
+
+    now = 9;
+    await again.save(r('d', '라')); // 순서에 없는 새 루틴
+    expect(again.myRoutines.map((e) => e.id), ['d', 'b', 'c', 'a']);
+
+    await again.delete('c');
+    expect(again.myRoutines.map((e) => e.id), ['d', 'b', 'a']);
+  });
 }

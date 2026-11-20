@@ -39,8 +39,54 @@ class RoutineStore extends ChangeNotifier {
         list.sort((a, b) => a.name.compareTo(b.name));
       case RoutineSort.created:
         list.sort((a, b) => _created(b).compareTo(_created(a)));
+      case RoutineSort.custom:
+        // 직접 정한 순서. 순서에 없는 루틴(나중에 만든 것)은 맨 위에 최신순으로
+        final pos = {for (final (i, id) in _d.customOrder.indexed) id: i};
+        list.sort((a, b) {
+          final pa = pos[a.id], pb = pos[b.id];
+          if (pa == null && pb == null) {
+            return _created(b).compareTo(_created(a));
+          }
+          if (pa == null) return -1;
+          if (pb == null) return 1;
+          return pa.compareTo(pb);
+        });
     }
     return list;
+  }
+
+  /// 프리셋 (사용자가 정한 순서, 없으면 기본 순서)
+  List<Routine> get presets {
+    final pos = {for (final (i, id) in _d.presetOrder.indexed) id: i};
+    final list = [...Presets.all];
+    final base = {for (final (i, r) in Presets.all.indexed) r.id: i};
+    list.sort(
+      (a, b) => (pos[a.id] ?? 1000 + base[a.id]!).compareTo(
+        pos[b.id] ?? 1000 + base[b.id]!,
+      ),
+    );
+    return list;
+  }
+
+  /// 프리셋 순서 바꾸기. [newIndex]는 옮긴 뒤 놓일 위치 (이미 보정된 값).
+  Future<void> movePreset(int oldIndex, int newIndex) async {
+    final ids = presets.map((r) => r.id).toList();
+    ids.insert(newIndex, ids.removeAt(oldIndex));
+    _d.presetOrder
+      ..clear()
+      ..addAll(ids);
+    await _commit();
+  }
+
+  /// 내 루틴 순서 바꾸기. 정렬은 "직접 정렬"로 바뀐다.
+  Future<void> moveMine(int oldIndex, int newIndex) async {
+    final ids = myRoutines.map((r) => r.id).toList();
+    ids.insert(newIndex, ids.removeAt(oldIndex));
+    _d.customOrder
+      ..clear()
+      ..addAll(ids);
+    _d.sort = RoutineSort.custom;
+    await _commit();
   }
 
   int _created(Routine r) => _d.createdAt[r.id] ?? 0;
@@ -94,6 +140,7 @@ class RoutineStore extends ChangeNotifier {
 
   Future<void> delete(String id) async {
     _d.routines.removeWhere((r) => r.id == id);
+    _d.customOrder.remove(id);
     _d.createdAt.remove(id);
     _d.favorites.remove(id);
     _d.lastUsed.remove(id);

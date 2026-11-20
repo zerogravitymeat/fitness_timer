@@ -109,14 +109,14 @@ void main() {
     });
   });
 
-  group('횟수 모드 (근력 세트 12회, 2-0-1)', () {
+  group('횟수 모드 (근력 세트 15회, 2-0-1)', () {
     final segs = RoutineCompiler.compile(Presets.strength);
     final work1 = segs[1];
     final work2 = segs[3];
 
     test('구간 시작: 긴 비프 + "12회 시작", 세트 번호는 "세트"로', () {
-      expect(_plan(Presets.strength, work1).first.speech, '1세트, 12회 시작');
-      expect(_plan(Presets.strength, work2).first.speech, '2세트, 12회 시작');
+      expect(_plan(Presets.strength, work1).first.speech, '1세트, 15회 시작');
+      expect(_plan(Presets.strength, work2).first.speech, '2세트, 15회 시작');
       expect(_plan(Presets.strength, work1).first.sound, CueSound.long);
     });
 
@@ -132,10 +132,11 @@ void main() {
 
     test('남은 3회 시점에 "마지막 3회", 마지막 회차 완료는 다음 구간이 대신', () {
       final s = _speech(_plan(Presets.strength, work1));
-      expect(s[27000], '마지막 3회'); // 9회 완료
-      expect(s[30000], '열'); // 10회 완료
       expect(s[33000], '열하나');
-      expect(s.containsKey(36000), isFalse);
+      expect(s[36000], '마지막 3회'); // 12회 완료
+      expect(s[39000], '열셋');
+      expect(s[42000], '열넷');
+      expect(s.containsKey(45000), isFalse);
     });
 
     test('종료 카운트다운은 없다', () {

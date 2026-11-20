@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../app/app_services.dart';
 import '../../design/tokens.dart';
 import '../../engine/timer_core.dart';
-import '../../models/presets.dart';
 import '../../models/routine.dart';
 import '../../services/billing/entitlement_service.dart';
 import '../../services/run/run_client.dart';
@@ -251,142 +251,251 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  /// 순서 편집 모드 (프리셋·내 루틴을 길게 누르면 들어간다)
+  bool _reorder = false;
+
+  void _enterReorder() {
+    HapticFeedback.mediumImpact();
+    setState(() => _reorder = true);
+  }
+
+  void _exitReorder() => setState(() => _reorder = false);
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: Listenable.merge([_store, _ent]),
-      builder: (context, _) {
-        final ent = _ent.value;
-        final recent = _store.recent;
-        final favorites = _store.favorites;
-        final mine = _store.myRoutines;
-        final text = Theme.of(context).textTheme;
+      builder: (context, _) => PopScope(
+        // 순서 편집 중 뒤로 가기는 편집 모드만 끝낸다
+        canPop: !_reorder,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && _reorder) _exitReorder();
+        },
+        child: _reorder ? _buildReorder(context) : _buildNormal(context),
+      ),
+    );
+  }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Fitness Timer'),
-            actions: [
-              IconButton(
-                tooltip: '설정',
-                icon: const Icon(Icons.settings_outlined),
-                onPressed: () => Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => const SettingsPage())),
+  /// 순서 편집: 손잡이(≡)나 항목을 끌어서 위아래로 옮긴다
+  Widget _buildReorder(BuildContext context) {
+    final presets = _store.presets;
+    final mine = _store.myRoutines;
+    Widget list(List<Routine> items, void Function(int, int) move) =>
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          itemCount: items.length,
+          // onReorderItem은 옮긴 뒤 놓일 위치를 이미 보정해서 준다
+          onReorderItem: (oldIndex, newIndex) {
+            if (newIndex != oldIndex) {
+              HapticFeedback.selectionClick();
+              move(oldIndex, newIndex);
+            }
+          },
+          proxyDecorator: (child, index, animation) => Material(
+            color: Colors.transparent,
+            elevation: 8,
+            shadowColor: Colors.black54,
+            borderRadius: BorderRadius.circular(18),
+            child: child,
+          ),
+          itemBuilder: (_, i) => ReorderableDelayedDragStartListener(
+            key: ValueKey(items[i].id),
+            index: i,
+            child: _ReorderTile(routine: items[i], index: i),
+          ),
+        );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('순서 편집'),
+        automaticallyImplyLeading: false,
+        actions: [
+          TextButton(
+            onPressed: _exitReorder,
+            child: const Text(
+              '완료',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+            child: Text(
+              '오른쪽 손잡이(≡)를 끌거나 항목을 길게 눌러 옮기세요',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          const _Section('프리셋'),
+          list(presets, _store.movePreset),
+          if (mine.isNotEmpty) ...[
+            const _Section('내 루틴'),
+            list(mine, _store.moveMine),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNormal(BuildContext context) {
+    final ent = _ent.value;
+    final recent = _store.recent;
+    final favorites = _store.favorites;
+    final mine = _store.myRoutines;
+    final text = Theme.of(context).textTheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Fitness Timer'),
+        actions: [
+          IconButton(
+            tooltip: '설정',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const SettingsPage())),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: '새 루틴 만들기',
+        onPressed: () => _edit(EditRules.blank(_store.newId()), isNew: true),
+        child: const Icon(Icons.add),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+        children: [
+          // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
+          if (ent.inTrial)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ActionChip(
+                avatar: const Icon(Icons.card_giftcard, size: 18),
+                label: Text('무료 운동 ${ent.freeRemaining}회 남음'),
+                onPressed: () => PaywallPage.open(context),
               ),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            tooltip: '새 루틴 만들기',
-            onPressed: () =>
-                _edit(EditRules.blank(_store.newId()), isNew: true),
-            child: const Icon(Icons.add),
-          ),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+            ),
+          if (recent != null) ...[
+            const _Section('최근'),
+            _RecentCard(
+              routine: recent,
+              locked: !ent.canStart(recent),
+              onStart: () => _start(recent),
+              onMenu: () => _menu(recent),
+            ),
+          ],
+          if (favorites.isNotEmpty) ...[
+            const _Section('즐겨찾기'),
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: favorites.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (_, i) {
+                  final r = favorites[i];
+                  return _FavoriteCard(
+                    routine: r,
+                    locked: !ent.canStart(r),
+                    onStart: () => _start(r),
+                    onMenu: () => _menu(r),
+                  );
+                },
+              ),
+            ),
+          ],
+          const _Section('프리셋'),
+          for (final r in _store.presets)
+            _RoutineTile(
+              routine: r,
+              locked: !ent.canStart(r),
+              favorite: _store.isFavorite(r.id),
+              onStart: () => _start(r),
+              onMenu: () => _menu(r),
+              onLongPress: _enterReorder,
+            ),
+          Row(
             children: [
-              // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
-              if (ent.inTrial)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: ActionChip(
-                    avatar: const Icon(Icons.card_giftcard, size: 18),
-                    label: Text('무료 운동 ${ent.freeRemaining}회 남음'),
-                    onPressed: () => PaywallPage.open(context),
+              const Expanded(child: _Section('내 루틴')),
+              DropdownButton<RoutineSort>(
+                value: _store.sort,
+                underline: const SizedBox.shrink(),
+                onChanged: (s) => s == null ? null : _store.setSort(s),
+                items: const [
+                  DropdownMenuItem(
+                    value: RoutineSort.custom,
+                    child: Text('직접 정렬'),
                   ),
-                ),
-              if (recent != null) ...[
-                const _Section('최근'),
-                _RecentCard(
-                  routine: recent,
-                  locked: !ent.canStart(recent),
-                  onStart: () => _start(recent),
-                  onMenu: () => _menu(recent),
-                ),
-              ],
-              if (favorites.isNotEmpty) ...[
-                const _Section('즐겨찾기'),
-                SizedBox(
-                  height: 112,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: favorites.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (_, i) {
-                      final r = favorites[i];
-                      return _FavoriteCard(
-                        routine: r,
-                        locked: !ent.canStart(r),
-                        onStart: () => _start(r),
-                        onMenu: () => _menu(r),
-                      );
-                    },
+                  DropdownMenuItem(
+                    value: RoutineSort.recent,
+                    child: Text('최근 사용순'),
                   ),
-                ),
-              ],
-              const _Section('프리셋'),
-              for (final r in Presets.all)
-                _RoutineTile(
-                  routine: r,
-                  locked: !ent.canStart(r),
-                  favorite: _store.isFavorite(r.id),
-                  onStart: () => _start(r),
-                  onMenu: () => _menu(r),
-                ),
-              Row(
-                children: [
-                  const Expanded(child: _Section('내 루틴')),
-                  DropdownButton<RoutineSort>(
-                    value: _store.sort,
-                    underline: const SizedBox.shrink(),
-                    onChanged: (s) => s == null ? null : _store.setSort(s),
-                    items: const [
-                      DropdownMenuItem(
-                        value: RoutineSort.recent,
-                        child: Text('최근 사용순'),
-                      ),
-                      DropdownMenuItem(
-                        value: RoutineSort.name,
-                        child: Text('이름순'),
-                      ),
-                      DropdownMenuItem(
-                        value: RoutineSort.created,
-                        child: Text('만든 순'),
-                      ),
-                    ],
+                  DropdownMenuItem(value: RoutineSort.name, child: Text('이름순')),
+                  DropdownMenuItem(
+                    value: RoutineSort.created,
+                    child: Text('만든 순'),
                   ),
                 ],
               ),
-              if (mine.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    children: [
-                      Text('자주 하는 운동을 루틴으로 저장해 보세요', style: text.bodyLarge),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.add),
-                        label: const Text('루틴 만들기'),
-                        onPressed: () =>
-                            _edit(EditRules.blank(_store.newId()), isNew: true),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                for (final r in mine)
-                  _RoutineTile(
-                    routine: r,
-                    locked: !ent.canStart(r),
-                    favorite: _store.isFavorite(r.id),
-                    onStart: () => _start(r),
-                    onMenu: () => _menu(r),
-                  ),
             ],
           ),
-        );
-      },
+          if (mine.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                children: [
+                  Text('자주 하는 운동을 루틴으로 저장해 보세요', style: text.bodyLarge),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('루틴 만들기'),
+                    onPressed: () =>
+                        _edit(EditRules.blank(_store.newId()), isNew: true),
+                  ),
+                ],
+              ),
+            )
+          else
+            for (final r in mine)
+              _RoutineTile(
+                routine: r,
+                locked: !ent.canStart(r),
+                favorite: _store.isFavorite(r.id),
+                onStart: () => _start(r),
+                onMenu: () => _menu(r),
+                onLongPress: _enterReorder,
+              ),
+        ],
+      ),
     );
   }
+}
+
+/// 순서 편집 모드의 항목: 탭·시작 버튼 없이 손잡이만
+class _ReorderTile extends StatelessWidget {
+  const _ReorderTile({required this.routine, required this.index});
+  final Routine routine;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: ListTile(
+      leading: _ModeBar(routine: routine),
+      title: Text(routine.name, overflow: TextOverflow.ellipsis),
+      subtitle: Text(RoutineSummary.of(routine)),
+      trailing: ReorderableDragStartListener(
+        index: index,
+        child: const Padding(
+          padding: EdgeInsets.all(8),
+          child: Icon(Icons.drag_handle_rounded, semanticLabel: '끌어서 옮기기'),
+        ),
+      ),
+    ),
+  );
 }
 
 class _Section extends StatelessWidget {
@@ -556,17 +665,21 @@ class _RoutineTile extends StatelessWidget {
     required this.favorite,
     required this.onStart,
     required this.onMenu,
+    required this.onLongPress,
   });
   final Routine routine;
   final bool locked;
   final bool favorite;
   final VoidCallback onStart;
   final VoidCallback onMenu;
+
+  /// 길게 누르면 순서 편집 모드
+  final VoidCallback onLongPress;
   @override
   Widget build(BuildContext context) => Card(
     child: ListTile(
       onTap: onMenu,
-      onLongPress: onMenu,
+      onLongPress: onLongPress,
       leading: _ModeBar(routine: routine, dim: locked),
       title: Row(
         children: [
