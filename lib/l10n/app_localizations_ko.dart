@@ -674,4 +674,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get presetStrength => '근력 세트';
+
+  @override
+  String get language => '언어';
+
+  @override
+  String get languageSystem => '기기 언어 따르기';
 }

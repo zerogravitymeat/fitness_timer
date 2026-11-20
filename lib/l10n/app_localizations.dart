@@ -1285,6 +1285,18 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'근력 세트'**
   String get presetStrength;
+
+  /// No description provided for @language.
+  ///
+  /// In ko, this message translates to:
+  /// **'언어'**
+  String get language;
+
+  /// No description provided for @languageSystem.
+  ///
+  /// In ko, this message translates to:
+  /// **'기기 언어 따르기'**
+  String get languageSystem;
 }
 
 class _AppLocalizationsDelegate

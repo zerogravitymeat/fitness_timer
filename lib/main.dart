@@ -7,6 +7,7 @@ import 'design/app_theme.dart';
 import 'design/glass.dart';
 import 'features/home/home_page.dart';
 import 'l10n/l10n.dart';
+import 'services/app_language.dart';
 import 'services/run/run_client.dart';
 
 Future<void> main() async {
@@ -20,6 +21,8 @@ Future<void> main() async {
   });
   // 저장된 루틴·설정 읽기. 그동안은 시스템 시작 화면(어두운 단색)이 떠 있다.
   await AppServices.init();
+  // Android 13+에서 시스템 설정의 앱별 언어를 바꿨을 수 있다
+  await AppLanguage.pullFromSystem(AppServices.settings);
   runApp(const FitnessTimerApp());
 }
 
@@ -28,12 +31,21 @@ class FitnessTimerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppServices.settings,
+      builder: (context, _) => _app(AppServices.settings.value.language),
+    );
+  }
+
+  /// [language]가 null이면 기기 언어를 따른다
+  Widget _app(String? language) {
     return MaterialApp(
       title: 'Fitness Timer',
+      locale: language == null ? null : Locale(language),
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      // 기기 언어를 따르고, 지원하지 않는 언어면 영어
+      // 설정한 언어나 기기 언어. 지원하지 않는 언어면 영어
       localeResolutionCallback: (locale, _) => resolveLocale(locale),
       // 글래스모피즘, 다크 테마만 (docs/04)
       theme: AppTheme.dark(),

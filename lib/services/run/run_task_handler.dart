@@ -47,11 +47,14 @@ class RunTaskHandler extends TaskHandler {
   Finished? _finished;
   RunSnapshotStore? _snapshots;
 
-  /// 알림 문구. 서비스 isolate에는 BuildContext가 없어 기기 언어로 직접 찾는다.
-  final _l = l10nFor(WidgetsBinding.instance.platformDispatcher.locale);
+  /// 알림 문구. 서비스 isolate에는 BuildContext가 없어 설정한 언어(없으면 기기 언어)로 직접 찾는다.
+  /// 시작할 때 설정을 읽은 뒤 다시 정한다.
+  AppLocalizations _l = l10nFor(
+    WidgetsBinding.instance.platformDispatcher.locale,
+  );
 
   /// 음성 안내도 알림과 같은 언어로
-  late final _cueText = CueText.forLanguage(_l.localeName);
+  CueText get _cueText => CueText.forLanguage(_l.localeName);
   TrialStore? _trial;
   int _lastSnapshotAt = 0;
   static const snapshotInterval = Duration(seconds: 5);
@@ -79,6 +82,7 @@ class RunTaskHandler extends TaskHandler {
     final app = settings == null
         ? const AppSettings()
         : AppSettings.fromJson(settings);
+    if (app.language != null) _l = l10nFor(Locale(app.language!));
     final restore = await _readJson(RunProtocol.restoreKey);
     final dataDir = await FlutterForegroundTask.getData<String>(
       key: RunProtocol.dataDirKey,

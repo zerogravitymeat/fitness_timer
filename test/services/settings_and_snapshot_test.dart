@@ -10,6 +10,17 @@ import 'package:fitness_timer/services/storage/settings_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('언어: 저장·복원, 지원하지 않는 값은 기기 언어(null)', () {
+    const s = AppSettings();
+    expect(s.language, isNull);
+    final en = s.withLanguage('en');
+    expect(AppSettings.fromJson(en.toJson()).language, 'en');
+    expect(en.copyWith(sound: false).language, 'en');
+    expect(en.withLanguage(null).language, isNull);
+    expect(s.withLanguage('fr').language, isNull);
+    expect(AppSettings.fromJson({'language': 'fr'}).language, isNull);
+  });
+
   late Directory dir;
   setUp(() async => dir = await Directory.systemTemp.createTemp('ft_test'));
   tearDown(() => dir.delete(recursive: true));

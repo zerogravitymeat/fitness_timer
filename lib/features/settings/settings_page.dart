@@ -11,6 +11,7 @@ import '../../models/entitlement.dart';
 import '../paywall/paywall_page.dart';
 import '../../engine/cue_text.dart';
 import '../../l10n/l10n.dart';
+import '../../services/app_language.dart';
 
 /// S5 설정 (docs/03_화면_설계.md 7장). 기능 확인용 기본 UI.
 class SettingsPage extends StatefulWidget {
@@ -23,6 +24,9 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   static const _system = MethodChannel('fitness_timer/system');
   final _tts = FlutterTts();
+
+  /// 고를 수 있는 언어 (AppSettings.languageChoices와 같은 순서)
+  static const _languages = [('ko', '한국어'), ('en', 'English')];
 
   /// 음성 안내 언어 (화면 언어를 따른다)
   CueText? _cueText;
@@ -84,6 +88,27 @@ class _SettingsPageState extends State<SettingsPage> {
           body: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
             children: [
+              _Group(context.l10n.language),
+              _Card(
+                children: [
+                  ListTile(
+                    title: Text(context.l10n.language),
+                    trailing: DropdownButton<String?>(
+                      value: s.language,
+                      underline: const SizedBox.shrink(),
+                      onChanged: (v) => AppLanguage.set(store, v),
+                      items: [
+                        DropdownMenuItem(
+                          child: Text(context.l10n.languageSystem),
+                        ),
+                        // 언어 이름은 그 언어로 쓴다
+                        for (final (code, name) in _languages)
+                          DropdownMenuItem(value: code, child: Text(name)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               _Group(context.l10n.alerts),
               _Card(
                 children: [

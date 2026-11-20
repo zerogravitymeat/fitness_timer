@@ -729,4 +729,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetStrength => 'Strength Sets';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get languageSystem => 'Use phone language';
 }

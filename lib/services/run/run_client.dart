@@ -28,8 +28,12 @@ class RunResult {
 
 /// 화면 쪽에서 서비스를 시작·조작하고 진행 상태를 받는다.
 class RunClient extends ChangeNotifier {
-  AppLocalizations get _l =>
-      l10nFor(WidgetsBinding.instance.platformDispatcher.locale);
+  /// 알림 문구. 앱에서 언어를 정했으면 그 언어, 아니면 기기 언어.
+  AppLocalizations _l([String? language]) => l10nFor(
+    language == null
+        ? WidgetsBinding.instance.platformDispatcher.locale
+        : Locale(language),
+  );
 
   RunClient._();
   static final instance = RunClient._();
@@ -52,8 +56,8 @@ class RunClient extends ChangeNotifier {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'run',
-        channelName: _l.notificationChannelName,
-        channelDescription: _l.notificationChannelDescription,
+        channelName: _l().notificationChannelName,
+        channelDescription: _l().notificationChannelDescription,
         onlyAlertOnce: true,
       ),
       iosNotificationOptions: const IOSNotificationOptions(),
@@ -120,10 +124,16 @@ class RunClient extends ChangeNotifier {
       serviceId: 100,
       serviceTypes: [ForegroundServiceTypes.specialUse],
       notificationTitle: workout.name,
-      notificationText: _l.notificationStarting,
+      notificationText: _l(settings.language).notificationStarting,
       notificationButtons: [
-        NotificationButton(id: RunProtocol.cmdPause, text: _l.pause),
-        NotificationButton(id: RunProtocol.cmdNext, text: _l.next),
+        NotificationButton(
+          id: RunProtocol.cmdPause,
+          text: _l(settings.language).pause,
+        ),
+        NotificationButton(
+          id: RunProtocol.cmdNext,
+          text: _l(settings.language).next,
+        ),
       ],
       callback: runServiceEntryPoint,
     );

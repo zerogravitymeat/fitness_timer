@@ -23,6 +23,7 @@ import '../paywall/paywall_page.dart';
 import '../run/run_page.dart';
 import '../settings/settings_page.dart';
 import '../../l10n/l10n.dart';
+import '../../services/app_language.dart';
 
 /// S1 홈 (docs/03_화면_설계.md 3장). 글래스 디자인은 개발 7단계에서 입힌다.
 class HomePage extends StatefulWidget {
@@ -67,7 +68,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// 앱으로 돌아올 때 무료 횟수 배지를 최신으로 (운동은 앱 밖에서도 끝날 수 있다)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _ent.refreshTrial();
+    if (state == AppLifecycleState.resumed) {
+      _ent.refreshTrial();
+      AppLanguage.pullFromSystem(AppServices.settings);
+    }
   }
 
   /// D1 이어하기 확인 (docs/03_화면_설계.md 8장)

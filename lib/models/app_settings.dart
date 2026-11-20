@@ -21,6 +21,7 @@ class AppSettings {
     this.countdownSeconds = 3,
     this.speechSpeed = SpeechSpeed.normal,
     this.keepScreenOn = true,
+    this.language,
   });
 
   final bool sound;
@@ -34,7 +35,11 @@ class AppSettings {
   /// 진행 화면이 열려 있는 동안 화면 꺼짐 방지
   final bool keepScreenOn;
 
+  /// 화면·음성 언어 코드 ("ko", "en"). null이면 기기 언어를 따른다.
+  final String? language;
+
   static const countdownChoices = [0, 3, 5];
+  static const languageChoices = ['ko', 'en'];
 
   AppSettings copyWith({
     bool? sound,
@@ -50,6 +55,18 @@ class AppSettings {
     countdownSeconds: countdownSeconds ?? this.countdownSeconds,
     speechSpeed: speechSpeed ?? this.speechSpeed,
     keepScreenOn: keepScreenOn ?? this.keepScreenOn,
+    language: language,
+  );
+
+  /// [copyWith]로는 null(기기 언어)로 되돌릴 수 없어 따로 둔다
+  AppSettings withLanguage(String? language) => AppSettings(
+    sound: sound,
+    vibration: vibration,
+    voice: voice,
+    countdownSeconds: countdownSeconds,
+    speechSpeed: speechSpeed,
+    keepScreenOn: keepScreenOn,
+    language: languageChoices.contains(language) ? language : null,
   );
 
   Map<String, Object?> toJson() => {
@@ -59,6 +76,7 @@ class AppSettings {
     'countdownSeconds': countdownSeconds,
     'speechSpeed': speechSpeed.name,
     'keepScreenOn': keepScreenOn,
+    'language': language,
   };
 
   /// 빠지거나 이상한 값은 기본값으로
@@ -78,6 +96,9 @@ class AppSettings {
               .firstOrNull ??
           d.speechSpeed,
       keepScreenOn: j['keepScreenOn'] as bool? ?? d.keepScreenOn,
+      language: languageChoices.contains(j['language'])
+          ? j['language'] as String
+          : null,
     );
   }
 }

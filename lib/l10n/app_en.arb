@@ -197,5 +197,7 @@
   "presetTabata": "Tabata",
   "presetHiit": "HIIT",
   "presetPlank": "Plank",
-  "presetStrength": "Strength Sets"
+  "presetStrength": "Strength Sets",
+  "language": "Language",
+  "languageSystem": "Use phone language"
 }
