@@ -601,20 +601,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              _GlassAddButton.barTop,
+              20,
+              _GlassAddButton.barBottom,
+            ),
             child: _GlassAddButton(onPressed: () => _addMenu(mine.isNotEmpty)),
           ),
         ),
       ),
       body: ListView(
-        // 마지막 항목이 추가 버튼에 가리지 않게: 버튼 영역(위 28 + 버튼 56 + 아래 14)
-        // + 시스템 내비게이션 바 + 여유. 이 context는 Scaffold 바깥이라
-        // paddingOf에는 시스템 내비게이션 바 높이만 들어 있다.
+        // 마지막 항목이 추가 버튼에 가리지 않게: 버튼 영역 + 시스템 내비게이션 바 + 여유.
+        // 이 context는 Scaffold 바깥이라 paddingOf에는 시스템 내비게이션 바 높이만 들어 있다.
         padding: EdgeInsets.fromLTRB(
           16,
           8,
           16,
-          28 + 56 + 14 + 16 + MediaQuery.paddingOf(context).bottom,
+          _GlassAddButton.areaHeight +
+              16 +
+              MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
@@ -1089,6 +1095,12 @@ class _GlassAddButton extends StatelessWidget {
   const _GlassAddButton({required this.onPressed});
   final VoidCallback onPressed;
 
+  /// 버튼 높이와 위아래 여백. 홈 목록의 아래 여백 계산에도 쓴다.
+  static const height = 56.0;
+  static const barTop = 28.0;
+  static const barBottom = 14.0;
+  static const areaHeight = barTop + height + barBottom;
+
   @override
   Widget build(BuildContext context) {
     final r = BorderRadius.circular(AppRadius.button);
@@ -1127,7 +1139,7 @@ class _GlassAddButton extends StatelessWidget {
                 borderRadius: r,
                 onTap: onPressed,
                 child: const SizedBox(
-                  height: 56,
+                  height: height,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
