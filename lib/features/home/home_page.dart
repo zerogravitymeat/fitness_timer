@@ -607,13 +607,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
       ),
       body: ListView(
-        // 마지막 항목이 추가 버튼에 가리지 않게. extendBody라서 아래 여백에
-        // 추가 버튼 영역 높이(시스템 내비게이션 바 포함)가 들어온다.
+        // 마지막 항목이 추가 버튼에 가리지 않게: 버튼 영역(위 28 + 버튼 56 + 아래 14)
+        // + 시스템 내비게이션 바 + 여유. 이 context는 Scaffold 바깥이라
+        // paddingOf에는 시스템 내비게이션 바 높이만 들어 있다.
         padding: EdgeInsets.fromLTRB(
           16,
           8,
           16,
-          16 + MediaQuery.paddingOf(context).bottom,
+          28 + 56 + 14 + 16 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
