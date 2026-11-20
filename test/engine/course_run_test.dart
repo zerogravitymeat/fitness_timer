@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:fitness_timer/engine/segment.dart';
@@ -212,6 +213,23 @@ void main() {
       await c.load();
       expect(c.courses.map((e) => e.id), ['c1']);
       expect(c.courseById('c1')!.steps.length, 1);
+    });
+
+    test('코스 정렬 전 파일: 옮겨 둔 순서가 있으면 직접 정렬로 시작', () async {
+      await File('${dir.path}/${RoutineRepository.fileName}').writeAsString(
+        jsonEncode({
+          'schemaVersion': 1,
+          'courses': [
+            {'id': 'a', 'name': '가', 'createdAt': 1},
+            {'id': 'b', 'name': '나', 'createdAt': 2},
+          ],
+          'courseOrder': ['a', 'b'],
+        }),
+      );
+      final s = RoutineStore(RoutineRepository(dir));
+      await s.load();
+      expect(s.courseSort, RoutineSort.custom);
+      expect(s.courses.map((c) => c.id), ['a', 'b']);
     });
   });
 }

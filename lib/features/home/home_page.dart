@@ -595,7 +595,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             colors: [
               AppColors.bgBase.withValues(alpha: 0),
               AppColors.bgBase.withValues(alpha: 0.80),
-              AppColors.bgBase.withValues(alpha: 0.95),
+              AppColors.bgBase, // 시스템 내비게이션 바 뒤로 목록이 비치지 않게
             ],
           ),
         ),
@@ -607,8 +607,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
       ),
       body: ListView(
-        // 마지막 항목이 추가 버튼에 가리지 않게
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 140),
+        // 마지막 항목이 추가 버튼에 가리지 않게. extendBody라서 아래 여백에
+        // 추가 버튼 영역 높이(시스템 내비게이션 바 포함)가 들어온다.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          16 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
           if (ent.inTrial)

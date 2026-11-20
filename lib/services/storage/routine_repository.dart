@@ -169,7 +169,13 @@ class RoutineRepository {
       courses: courses,
       courseOrder: _strings(j['courseOrder']),
       sort: _sort(j['sort']),
-      courseSort: _sort(j['courseSort']),
+      // 코스 정렬이 생기기 전에는 코스가 항상 직접 정한 순서였다.
+      // 그때 옮겨 둔 순서가 있으면 그대로 보이게 "직접 정렬"로 시작한다.
+      courseSort: j.containsKey('courseSort')
+          ? _sort(j['courseSort'])
+          : _strings(j['courseOrder']).isNotEmpty
+          ? RoutineSort.custom
+          : RoutineSort.recent,
     );
   }
 }
