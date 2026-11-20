@@ -114,10 +114,29 @@ void main() {
     final work1 = segs[1];
     final work2 = segs[3];
 
-    test('구간 시작: 긴 비프 + "12회 시작", 세트 번호는 "세트"로', () {
-      expect(_plan(Presets.strength, work1).first.speech, '1세트, 15회 시작');
-      expect(_plan(Presets.strength, work2).first.speech, '2세트, 15회 시작');
-      expect(_plan(Presets.strength, work1).first.sound, CueSound.long);
+    test('구간 시작: 첫 회차와 겹치지 않도록 긴 비프만, 음성 없음', () {
+      for (final w in [work1, work2]) {
+        final start = _plan(Presets.strength, w).first;
+        expect(start.offsetMs, 0);
+        expect(start.sound, CueSound.long);
+        expect(start.speech, isNull);
+      }
+    });
+
+    test('준비 구간에서 첫 세트와 횟수를 미리 알린다', () {
+      expect(
+        _plan(Presets.strength, segs[0]).first.speech,
+        '준비하세요, 1세트 15회',
+      );
+      const one = Routine(
+        id: 'a',
+        name: 'a',
+        endCondition: EndCondition.reps,
+        targetReps: 10,
+        rounds: 1,
+      );
+      final prep = RoutineCompiler.compile(one).first;
+      expect(_plan(one, prep).first.speech, '준비하세요, 10회');
     });
 
     test('박자: 올라오기 높은 비프, 다음 회차 내려가기 낮은 비프 + 회차 숫자', () {
@@ -176,10 +195,37 @@ void main() {
       expect(cues[1].sound, isNotNull);
     });
 
-    test('세트 간 휴식으로 안내 (내부적으로는 휴식 구간)', () {
+    test('세트 간 휴식으로 안내하고 다음 세트와 횟수를 붙인다', () {
       expect(
         _plan(Presets.strength, segs[2]).first.speech,
-        '1세트 완료, 휴식 1분 30초',
+        '1세트 완료, 휴식 1분 30초, 다음 2세트 15회',
+      );
+    });
+
+    test('코스: 준비 구간에서 루틴 이름, 루틴 사이 휴식에서 횟수도 읽는다', () {
+      expect(
+        CuePlanner.plan(
+          Presets.strength,
+          segs[0],
+          durationMs: segs[0].durationMs,
+          announceName: true,
+        ).first.speech,
+        '준비하세요, 근력 세트, 1세트 15회',
+      );
+      const rest = Segment(
+        type: SegmentType.courseRest,
+        durationMs: 60000,
+        round: 1,
+        set: 1,
+      );
+      expect(
+        CuePlanner.plan(
+          Presets.strength,
+          rest,
+          durationMs: 60000,
+          announceName: true,
+        ).first.speech,
+        '휴식 1분, 다음은 근력 세트, 1세트 15회',
       );
     });
 

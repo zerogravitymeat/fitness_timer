@@ -147,28 +147,43 @@ abstract final class CuePlanner {
   }) {
     switch (seg.type) {
       case SegmentType.prep:
-        return '준비하세요';
+        // 횟수 모드는 운동 시작 때 음성이 없으므로 여기서 미리 알린다
+        return r.isReps
+            ? [
+                '준비하세요',
+                if (announceName) r.name,
+                _nextReps(r, 1),
+              ].join(', ')
+            : '준비하세요';
       case SegmentType.work:
+        // 횟수 모드는 긴 비프만 낸다. 음성이 첫 회차와 겹치면
+        // 사용자가 음성이 끝난 뒤에 움직여 회차가 하나씩 밀린다.
+        if (seg.isRepWork) return null;
         final prefix = <String>[
           if (announceName && seg.isFirstWork) r.name,
           if (r.effectiveSets > 1 && seg.round == 1) '${seg.set}세트',
-          // 횟수 모드는 라운드를 "세트"로 부른다 (docs/02 2.5절)
-          if (r.rounds > 1) r.isReps ? '${seg.round}세트' : '${seg.round}라운드',
+          if (r.rounds > 1) '${seg.round}라운드',
         ];
-        final body = seg.isRepWork ? '${seg.targetReps}회 시작' : '운동 시작';
-        return [...prefix, body].join(', ');
+        return [...prefix, '운동 시작'].join(', ');
       case SegmentType.rest:
-        // 횟수 모드의 휴식은 "세트 간 휴식"으로 안내한다 (docs/02 6.2절)
+        // 횟수 모드의 휴식은 "세트 간 휴식"으로 안내하고 다음 세트를 미리 알린다 (docs/02 6.2절)
         return r.isReps
-            ? '${seg.round}세트 완료, 휴식 ${KoreanSpeech.duration(durationMs)}'
+            ? '${seg.round}세트 완료, 휴식 ${KoreanSpeech.duration(durationMs)}, 다음 ${_nextReps(r, seg.round + 1)}'
             : '휴식 ${KoreanSpeech.duration(durationMs)}';
       case SegmentType.setRest:
         return '${seg.set}세트 완료, 휴식 ${KoreanSpeech.duration(durationMs)}';
       case SegmentType.courseRest:
         // 조사 문제가 없도록 "다음은 + 이름" 순서로
-        return '휴식 ${KoreanSpeech.duration(durationMs)}, 다음은 ${r.name}';
+        return [
+          '휴식 ${KoreanSpeech.duration(durationMs)}, 다음은 ${r.name}',
+          if (r.isReps) _nextReps(r, 1),
+        ].join(', ');
     }
   }
+
+  /// 횟수 모드에서 곧 할 세트 안내. 예: "2세트 15회", 세트가 하나면 "15회"
+  static String _nextReps(Routine r, int round) =>
+      r.rounds > 1 ? '$round세트 ${r.targetReps}회' : '${r.targetReps}회';
 
   /// 루틴이 끝났을 때 알림. 끝까지 했으면 실제로 걸린 시간을 읽고,
   /// 사용자가 중간에 끝냈으면 "운동 종료"만 짧게 알린다 (docs/03 6장).
