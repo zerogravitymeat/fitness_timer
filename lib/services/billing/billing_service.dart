@@ -12,7 +12,7 @@ enum BuyResult { purchased, pending, canceled, failed, unavailable }
 
 /// Google Play 인앱 결제 (docs/02_기능_명세.md 10.5절, docs/05 7장).
 ///
-/// - 비소모성 상품 하나(`full_version`)를 한 번 구매로 판다.
+/// - 비소모성 상품 하나(`fitness_timer`)를 한 번 구매로 판다.
 /// - 앱을 시작할 때 구매 내역을 조회해 정식 버전 여부를 정한다.
 ///   조회에 실패하면(오프라인 등) 마지막으로 저장한 값을 그대로 쓴다.
 /// - 환불되어 구매 내역이 사라지면 다음 조회 때 체험 종료 상태로 돌아간다.
@@ -20,8 +20,8 @@ enum BuyResult { purchased, pending, canceled, failed, unavailable }
 class BillingService extends ChangeNotifier {
   BillingService(this._entitlement);
 
-  /// Play Console에 만들 상품 ID (임시)
-  static const productId = 'full_version';
+  /// Play Console에 등록한 상품 ID. 한 번 정하면 바꿀 수 없다
+  static const productId = 'fitness_timer';
 
   final EntitlementService _entitlement;
   final _iap = InAppPurchase.instance;
