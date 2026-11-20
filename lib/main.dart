@@ -33,10 +33,15 @@ class FitnessTimerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // 기기 언어를 따르고, 지원하지 않는 언어면 영어
+      localeResolutionCallback: (locale, _) => resolveLocale(locale),
       // 글래스모피즘, 다크 테마만 (docs/04)
       theme: AppTheme.dark(),
       // 모든 화면 뒤에 공통 배경. 진행 화면은 자기 배경(구간 색)으로 덮는다.
-      builder: (context, child) => AppBackground(child: child!),
+      builder: (context, child) {
+        AppServices.routines.setPresetNames((p) => presetName(context.l10n, p));
+        return AppBackground(child: child!);
+      },
       home: const HomePage(),
     );
   }

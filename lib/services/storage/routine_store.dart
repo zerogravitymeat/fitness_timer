@@ -68,10 +68,18 @@ class RoutineStore extends ChangeNotifier {
     return list;
   }
 
+  /// 화면 언어에 맞춘 프리셋. 이름만 바뀌고 저장하지 않는다.
+  List<Routine> _presets = Presets.all;
+
+  /// 프리셋 이름을 화면 언어로. 화면을 그리는 중에 부르므로 알리지 않는다.
+  void setPresetNames(String Function(Routine preset) nameOf) {
+    _presets = [for (final p in Presets.all) p.copyWith(name: nameOf(p))];
+  }
+
   /// 프리셋 (사용자가 정한 순서, 없으면 기본 순서)
   List<Routine> get presets {
     final pos = {for (final (i, id) in _d.presetOrder.indexed) id: i};
-    final list = [...Presets.all];
+    final list = [..._presets];
     final base = {for (final (i, r) in Presets.all.indexed) r.id: i};
     list.sort(
       (a, b) => (pos[a.id] ?? 1000 + base[a.id]!).compareTo(
@@ -102,7 +110,7 @@ class RoutineStore extends ChangeNotifier {
     await _commit();
   }
 
-  List<Routine> get all => [...Presets.all, ..._d.routines];
+  List<Routine> get all => [..._presets, ..._d.routines];
 
   Routine? byId(String id) => all.where((r) => r.id == id).firstOrNull;
 

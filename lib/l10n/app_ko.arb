@@ -467,5 +467,9 @@
   "status": "상태",
   "fullVersionActive": "정식 버전 사용 중",
   "trialEnded": "체험 종료 (프리셋은 계속 무료)",
-  "buyFullVersion": "정식 버전 구매"
+  "buyFullVersion": "정식 버전 구매",
+  "presetTabata": "타바타",
+  "presetHiit": "HIIT",
+  "presetPlank": "플랭크",
+  "presetStrength": "근력 세트"
 }

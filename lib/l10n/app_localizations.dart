@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_en.dart';
 import 'app_localizations_ko.dart';
 
 // ignore_for_file: type=lint
@@ -92,7 +93,10 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('ko')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('ko'),
+  ];
 
   /// No description provided for @cancel.
   ///
@@ -1257,6 +1261,30 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'정식 버전 구매'**
   String get buyFullVersion;
+
+  /// No description provided for @presetTabata.
+  ///
+  /// In ko, this message translates to:
+  /// **'타바타'**
+  String get presetTabata;
+
+  /// No description provided for @presetHiit.
+  ///
+  /// In ko, this message translates to:
+  /// **'HIIT'**
+  String get presetHiit;
+
+  /// No description provided for @presetPlank.
+  ///
+  /// In ko, this message translates to:
+  /// **'플랭크'**
+  String get presetPlank;
+
+  /// No description provided for @presetStrength.
+  ///
+  /// In ko, this message translates to:
+  /// **'근력 세트'**
+  String get presetStrength;
 }
 
 class _AppLocalizationsDelegate
@@ -1270,7 +1298,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['ko'].contains(locale.languageCode);
+      <String>['en', 'ko'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -1279,6 +1307,8 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
     case 'ko':
       return AppLocalizationsKo();
   }

@@ -662,4 +662,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get buyFullVersion => '정식 버전 구매';
+
+  @override
+  String get presetTabata => '타바타';
+
+  @override
+  String get presetHiit => 'HIIT';
+
+  @override
+  String get presetPlank => '플랭크';
+
+  @override
+  String get presetStrength => '근력 세트';
 }
