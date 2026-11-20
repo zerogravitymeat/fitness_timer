@@ -2,8 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import '../../models/course.dart';
 import '../../models/presets.dart';
 import '../../models/routine.dart';
+import '../../models/workout.dart';
 import 'routine_repository.dart';
 
 /// 화면이 쓰는 루틴 목록 상태. 바뀔 때마다 파일에 저장한다.
@@ -138,8 +140,19 @@ class RoutineStore extends ChangeNotifier {
     await _commit();
   }
 
+  /// 루틴을 지우면 그 루틴이 들어간 코스에서도 빠진다 (docs/02 8-1장)
   Future<void> delete(String id) async {
     _d.routines.removeWhere((r) => r.id == id);
+    for (final (i, c) in _d.courses.indexed.toList()) {
+      if (c.steps.any((s) => s.routineId == id)) {
+        _d.courses[i] = c.copyWith(
+          steps: [
+            for (final s in c.steps)
+              if (s.routineId != id) s,
+          ],
+        );
+      }
+    }
     _d.customOrder.remove(id);
     _d.createdAt.remove(id);
     _d.favorites.remove(id);
@@ -168,6 +181,66 @@ class RoutineStore extends ChangeNotifier {
         ? r.name.substring(0, RoutineLimits.maxNameLength - 3)
         : r.name;
     return r.copyWith(id: newId(), isPreset: false, name: '$base 복사');
+  }
+
+  // ── 코스 (docs/02 8-1장) ─────────────────────────
+
+  /// 코스 목록 (직접 정한 순서. 순서에 없는 코스는 맨 위에 최신순)
+  List<Course> get courses {
+    final pos = {for (final (i, id) in _d.courseOrder.indexed) id: i};
+    final list = [..._d.courses];
+    int created(Course c) => _d.createdAt[c.id] ?? 0;
+    list.sort((a, b) {
+      final pa = pos[a.id], pb = pos[b.id];
+      if (pa == null && pb == null) return created(b).compareTo(created(a));
+      if (pa == null) return -1;
+      if (pb == null) return 1;
+      return pa.compareTo(pb);
+    });
+    return list;
+  }
+
+  Course? courseById(String id) =>
+      _d.courses.where((c) => c.id == id).firstOrNull;
+
+  String newCourseId() =>
+      'c${_now().toRadixString(36)}${_rand.nextInt(1 << 30).toRadixString(36)}';
+
+  /// 코스를 실제로 진행할 내용으로 (지워진 루틴은 빠진다)
+  Workout workoutOf(Course c) => Workout.course(c, byId);
+
+  /// 이 루틴이 들어간 코스 수 (루틴 삭제 확인 창용)
+  int coursesUsing(String routineId) => _d.courses
+      .where((c) => c.steps.any((s) => s.routineId == routineId))
+      .length;
+
+  Future<void> saveCourse(Course c) async {
+    c = c.normalized();
+    final i = _d.courses.indexWhere((e) => e.id == c.id);
+    if (i >= 0) {
+      _d.courses[i] = c;
+    } else {
+      _d.courses.add(c);
+      _d.createdAt[c.id] = _now();
+    }
+    await _commit();
+  }
+
+  Future<void> deleteCourse(String id) async {
+    _d.courses.removeWhere((c) => c.id == id);
+    _d.courseOrder.remove(id);
+    _d.createdAt.remove(id);
+    _d.lastUsed.remove(id);
+    await _commit();
+  }
+
+  Future<void> moveCourse(int oldIndex, int newIndex) async {
+    final ids = courses.map((c) => c.id).toList();
+    ids.insert(newIndex, ids.removeAt(oldIndex));
+    _d.courseOrder
+      ..clear()
+      ..addAll(ids);
+    await _commit();
   }
 
   /// 화면에는 바로 반영하고, 파일 쓰기는 순서대로 한다.

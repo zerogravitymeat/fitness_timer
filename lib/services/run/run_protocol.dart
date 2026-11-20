@@ -1,6 +1,7 @@
 /// 화면 ↔ 서비스 메시지 이름 (docs/05_기술_설계.md 2.1절)
 abstract final class RunProtocol {
-  static const routineKey = 'run.routine';
+  /// 진행할 운동 (Workout JSON: 루틴 하나 또는 코스)
+  static const workoutKey = 'run.workout';
   static const soundDirKey = 'run.soundDir';
   static const settingsKey = 'run.settings';
   static const dataDirKey = 'run.dataDir';

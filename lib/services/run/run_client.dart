@@ -5,7 +5,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../engine/timer_core.dart';
 import '../../models/app_settings.dart';
-import '../../models/routine.dart';
+import '../../models/workout.dart';
 import '../audio/sound_files.dart';
 import 'run_protocol.dart';
 import 'run_task_handler.dart';
@@ -72,7 +72,7 @@ class RunClient extends ChangeNotifier {
 
   /// [restore]가 있으면 저장된 위치에서 일시정지 상태로 이어서 시작한다.
   Future<bool> start(
-    Routine routine, {
+    Workout workout, {
     required AppSettings settings,
     required String dataDir,
     EngineCheckpoint? restore,
@@ -101,8 +101,8 @@ class RunClient extends ChangeNotifier {
       value: restore == null ? '' : jsonEncode(restore.toJson()),
     );
     await FlutterForegroundTask.saveData(
-      key: RunProtocol.routineKey,
-      value: jsonEncode(routine.toJson()),
+      key: RunProtocol.workoutKey,
+      value: jsonEncode(workout.toJson()),
     );
     // 이전 운동의 서비스(완료음 재생 중 등)가 남아 있으면 완전히 내려간 뒤 시작한다
     if (await isRunning) {
@@ -114,7 +114,7 @@ class RunClient extends ChangeNotifier {
     final r = await FlutterForegroundTask.startService(
       serviceId: 100,
       serviceTypes: [ForegroundServiceTypes.specialUse],
-      notificationTitle: routine.name,
+      notificationTitle: workout.name,
       notificationText: '시작하는 중',
       notificationButtons: const [
         NotificationButton(id: RunProtocol.cmdPause, text: '일시정지'),

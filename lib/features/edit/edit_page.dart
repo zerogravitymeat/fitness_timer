@@ -581,7 +581,7 @@ class _TimeStepper extends StatelessWidget {
         onChanged(EditRules.stepTime(ms, up: false, min: min, max: max)),
     onUp: () => onChanged(EditRules.stepTime(ms, up: true, min: min, max: max)),
     onTapValue: () async {
-      final v = await _pickTime(context, label, ms);
+      final v = await pickTime(context, label, ms);
       if (v != null) onChanged(v.clamp(min, max));
     },
   );
@@ -640,8 +640,8 @@ class _TempoStepper extends StatelessWidget {
   );
 }
 
-/// 값을 탭하면 `분:초` 휠 선택기 (docs/03 4장)
-Future<int?> _pickTime(BuildContext context, String label, int ms) {
+/// 값을 탭하면 `분:초` 휠 선택기 (docs/03 4장). 코스 편집에서도 쓴다.
+Future<int?> pickTime(BuildContext context, String label, int ms) {
   var m = (ms ~/ 1000) ~/ 60, s = (ms ~/ 1000) % 60;
   return showModalBottomSheet<int>(
     context: context,

@@ -8,19 +8,30 @@ abstract final class RunLabels {
     SegmentType.work => '운동',
     SegmentType.rest => isReps ? '세트 간 휴식' : '휴식',
     SegmentType.setRest => '세트 간 휴식',
+    SegmentType.courseRest => '휴식',
     null => '완료',
   };
 
   /// 시간 모드: "라운드 3/8 · 세트 1/2", 횟수 모드: "세트 2/3"
   static String progress(RunView v) {
+    // 코스의 루틴 사이 휴식: 지금까지 마친 루틴 수
+    if (v.segmentType == SegmentType.courseRest) {
+      return '루틴 ${v.partIndex}/${v.partCount} 완료';
+    }
     if (v.isReps) return '세트 ${v.round}/${v.rounds}';
     final round = '라운드 ${v.round}/${v.rounds}';
     return v.sets > 1 ? '$round · 세트 ${v.set}/${v.sets}' : round;
   }
 
+  /// 코스: "2/4 스쿼트"
+  static String coursePosition(RunView v) =>
+      '${v.partIndex + 1}/${v.partCount} ${v.routineName}';
+
   static String next(RunView v) {
     final t = v.nextType;
     if (t == null) return '다음: 완료';
+    // 코스에서 다음 루틴으로 넘어갈 때는 루틴 이름
+    if (v.nextRoutineName != null) return '다음: ${v.nextRoutineName}';
     final name = segment(t, isReps: v.isReps);
     if (v.nextTargetReps != null) return '다음: $name ${v.nextTargetReps}회';
     return '다음: $name ${duration(v.nextDurationMs ?? 0)}';

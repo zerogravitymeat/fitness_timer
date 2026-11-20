@@ -113,7 +113,8 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     final paused = v.status == RunStatus.paused;
     final isRest =
         v.segmentType == SegmentType.rest ||
-        v.segmentType == SegmentType.setRest;
+        v.segmentType == SegmentType.setRest ||
+        v.segmentType == SegmentType.courseRest;
     final segName = RunLabels.segment(v.segmentType, isReps: v.isReps);
     final colors = PhaseColors.of(
       v.segmentType,
@@ -244,14 +245,37 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     ),
   );
 
-  Widget _title(RunView v) => Text(
-    v.routineName,
-    style: TextStyle(
+  /// 루틴: 루틴 이름. 코스: 코스 이름 아래에 "2/4 스쿼트" (docs/03 5.6절)
+  Widget _title(RunView v) {
+    final style = TextStyle(
       color: Colors.white.withValues(alpha: 0.88),
       fontSize: 17,
       fontWeight: FontWeight.w500,
-    ),
-  );
+    );
+    if (!v.isCourse) {
+      return Text(v.routineName, style: style, overflow: TextOverflow.ellipsis);
+    }
+    return Column(
+      children: [
+        Text(
+          v.workoutName,
+          overflow: TextOverflow.ellipsis,
+          style: style.copyWith(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.66),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          v.segmentType == SegmentType.courseRest
+              ? '다음 ${RunLabels.coursePosition(v)}'
+              : RunLabels.coursePosition(v),
+          overflow: TextOverflow.ellipsis,
+          style: style.copyWith(fontFeatures: tabularFigures),
+        ),
+      ],
+    );
+  }
 
   Widget _info(RunView v, {required bool paused, required String segName}) {
     return Column(
@@ -630,12 +654,17 @@ class _ResultPageState extends State<ResultPage> {
                         color: Colors.white.withValues(alpha: 0.16),
                       ),
                     ),
-                    _StatRow(
-                      label: v.isReps ? '완료한 세트' : '진행',
-                      value: v.isReps
-                          ? '${v.rounds} / ${v.rounds}'
-                          : RunLabels.progress(v),
-                    ),
+                    v.isCourse
+                        ? _StatRow(
+                            label: '완료한 루틴',
+                            value: '${v.partCount} / ${v.partCount}',
+                          )
+                        : _StatRow(
+                            label: v.isReps ? '완료한 세트' : '진행',
+                            value: v.isReps
+                                ? '${v.rounds} / ${v.rounds}'
+                                : RunLabels.progress(v),
+                          ),
                   ],
                 ],
               ),

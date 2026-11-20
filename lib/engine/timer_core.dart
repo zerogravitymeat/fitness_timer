@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../models/routine.dart';
+import '../models/workout.dart';
 import 'cue.dart';
 import 'cue_planner.dart';
 import 'routine_compiler.dart';
@@ -134,18 +135,43 @@ class EngineCheckpoint {
 /// - 모든 명령은 그 사이에 생긴 이벤트 목록을 돌려준다.
 /// - 일시정지한 시간은 진행 시간에 들어가지 않는다.
 class TimerCore {
+  /// 루틴 하나
   TimerCore({
     required Routine routine,
+    required int Function() clock,
+    CueSettings settings = const CueSettings(),
+    int trialThresholdMs = 60000,
+    int staleCueMs = 1000,
+    int prevRestartThresholdMs = 3000,
+  }) : this.workout(
+         workout: Workout.single(routine),
+         clock: clock,
+         settings: settings,
+         trialThresholdMs: trialThresholdMs,
+         staleCueMs: staleCueMs,
+         prevRestartThresholdMs: prevRestartThresholdMs,
+       );
+
+  /// 루틴 하나 또는 코스 (docs/02 8-1장)
+  TimerCore.workout({
+    required Workout workout,
     required this.clock,
     this.settings = const CueSettings(),
     this.trialThresholdMs = 60000,
     this.staleCueMs = 1000,
     this.prevRestartThresholdMs = 3000,
-  }) : routine = routine.normalized(),
-       segments = RoutineCompiler.compile(routine);
+  }) : workout = workout.normalized(),
+       segments = RoutineCompiler.compileWorkout(workout);
 
-  /// 허용 범위로 맞춘 루틴 ([Routine.normalized])
-  final Routine routine;
+  /// 허용 범위로 맞춘 운동 ([Workout.normalized])
+  final Workout workout;
+
+  /// 첫 루틴 (루틴 하나일 때는 그 루틴)
+  Routine get routine => workout.routines.first;
+
+  /// 구간이 속한 루틴
+  Routine routineOf(Segment s) => workout.routines[s.part];
+
   final CueSettings settings;
   final List<Segment> segments;
 
@@ -288,6 +314,7 @@ class TimerCore {
 
     final seg = segments[_index];
     if (seg.isRepWork) {
+      final routine = routineOf(seg);
       final repMs = routine.tempo.repMs;
       final now = activeMs;
       final floored = ((now - _segStart) ~/ repMs) * repMs;
@@ -371,7 +398,7 @@ class TimerCore {
         segmentDurationMs: 0,
         totalActiveMs: total,
         remainingTotalMs: _status == RunStatus.idle
-            ? RoutineCompiler.estimatedTotalMs(routine)
+            ? RoutineCompiler.estimatedWorkoutMs(workout)
             : 0,
       );
     }
@@ -401,7 +428,7 @@ class TimerCore {
       totalActiveMs: total,
       remainingTotalMs: remaining,
       tempo: seg.isRepWork
-          ? TempoClock.at(routine.tempo, seg.targetReps!, elapsed)
+          ? TempoClock.at(routineOf(seg).tempo, seg.targetReps!, elapsed)
           : null,
     );
   }
@@ -451,10 +478,11 @@ class TimerCore {
   }
 
   List<Cue> _plan(int i) => CuePlanner.plan(
-    routine,
+    routineOf(segments[i]),
     segments[i],
     durationMs: _curDuration,
     settings: settings,
+    announceName: workout.isCourse,
   );
 
   int _firstCueAfter(int offset) {

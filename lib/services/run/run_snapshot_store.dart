@@ -1,17 +1,19 @@
 import '../../engine/timer_core.dart';
 import '../../models/routine.dart';
+import '../../models/workout.dart';
 import '../storage/json_file.dart';
 
 /// 이어하기용으로 저장된 진행 상태 (docs/02_기능_명세.md 7장)
 class SavedRun {
   const SavedRun({
-    required this.routine,
+    required this.workout,
     required this.checkpoint,
     required this.savedAtMs,
     required this.progressLabel,
   });
 
-  final Routine routine;
+  /// 루틴 하나 또는 코스
+  final Workout workout;
   final EngineCheckpoint checkpoint;
 
   /// epoch ms
@@ -43,9 +45,9 @@ class RunSnapshotStore {
   Future<void> _enqueue(Future<void> Function() op) =>
       _queue = _queue.then((_) => op()).catchError((Object _) {});
 
-  Future<void> save(Routine routine, EngineCheckpoint c, String progressLabel) {
+  Future<void> save(Workout workout, EngineCheckpoint c, String progressLabel) {
     final data = {
-      'routine': routine.toJson(),
+      'workout': workout.toJson(),
       'checkpoint': c.toJson(),
       'savedAt': _now(),
       'progress': progressLabel,
@@ -58,16 +60,24 @@ class RunSnapshotStore {
     final j = await _file.read();
     if (j == null) return null;
     final savedAt = (j['savedAt'] as num?)?.toInt() ?? 0;
+    final workout = j['workout'];
+    // 코스 기능 전에 저장된 파일은 루틴 하나만 있다
     final routine = j['routine'];
     final cp = j['checkpoint'];
+    final w = workout is Map
+        ? Workout.fromJson(workout.cast<String, Object?>())
+        : routine is Map
+        ? Workout.single(Routine.fromJson(routine.cast<String, Object?>()))
+        : null;
     if (_now() - savedAt > maxAge.inMilliseconds ||
-        routine is! Map ||
+        w == null ||
+        w.routines.isEmpty ||
         cp is! Map) {
       await clear();
       return null;
     }
     return SavedRun(
-      routine: Routine.fromJson(routine.cast<String, Object?>()),
+      workout: w,
       checkpoint: EngineCheckpoint.fromJson(cp.cast<String, Object?>()),
       savedAtMs: savedAt,
       progressLabel: j['progress'] as String? ?? '',

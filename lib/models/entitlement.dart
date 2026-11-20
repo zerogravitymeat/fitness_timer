@@ -1,5 +1,6 @@
 // 순수 Dart 모델. Flutter를 import하지 않는다.
 import 'routine.dart';
+import 'workout.dart';
 
 /// 결과 화면의 체험 안내 종류 (docs/02_기능_명세.md 10.4절)
 enum TrialNotice {
@@ -37,6 +38,10 @@ class Entitlement {
 
   /// 프리셋은 체험이 끝나도 무료
   bool canStart(Routine r) => r.isPreset || canUseCustom;
+
+  /// 코스는 프리셋만 넣었더라도 내 루틴처럼 잠긴다 (docs/02 10.3절)
+  bool canStartWorkout(Workout w) =>
+      w.isCourse ? canUseCustom : w.routines.every(canStart);
 
   /// 운동 하나를 마친 뒤 결과 화면에서 보여줄 안내.
   /// [usedBefore]는 그 운동을 시작하기 전의 사용 횟수.

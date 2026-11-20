@@ -22,11 +22,14 @@ abstract final class CuePlanner {
   static const lastRepsMinTarget = 6;
 
   /// [durationMs]는 실제 구간 길이 (휴식 +10초가 반영된 값).
+  /// [r]은 그 구간이 속한 루틴 (루틴 사이 휴식은 다음 루틴).
+  /// [announceName]이 true면 루틴의 첫 운동과 루틴 사이 휴식에서 루틴 이름을 읽는다 (코스).
   static List<Cue> plan(
     Routine r,
     Segment seg, {
     required int durationMs,
     CueSettings settings = const CueSettings(),
+    bool announceName = false,
   }) {
     final cues = <Cue>[];
 
@@ -37,7 +40,7 @@ abstract final class CuePlanner {
         kind: CueKind.segmentStart,
         sound: seg.type == SegmentType.prep ? null : CueSound.long,
         vibration: seg.type == SegmentType.prep ? null : CueVibration.long,
-        speech: _startSpeech(r, seg, durationMs),
+        speech: _startSpeech(r, seg, durationMs, announceName: announceName),
       ),
     );
 
@@ -136,12 +139,18 @@ abstract final class CuePlanner {
     }
   }
 
-  static String? _startSpeech(Routine r, Segment seg, int durationMs) {
+  static String? _startSpeech(
+    Routine r,
+    Segment seg,
+    int durationMs, {
+    bool announceName = false,
+  }) {
     switch (seg.type) {
       case SegmentType.prep:
         return '준비하세요';
       case SegmentType.work:
         final prefix = <String>[
+          if (announceName && seg.isFirstWork) r.name,
           if (r.effectiveSets > 1 && seg.round == 1) '${seg.set}세트',
           // 횟수 모드는 라운드를 "세트"로 부른다 (docs/02 2.5절)
           if (r.rounds > 1) r.isReps ? '${seg.round}세트' : '${seg.round}라운드',
@@ -155,6 +164,9 @@ abstract final class CuePlanner {
             : '휴식 ${KoreanSpeech.duration(durationMs)}';
       case SegmentType.setRest:
         return '${seg.set}세트 완료, 휴식 ${KoreanSpeech.duration(durationMs)}';
+      case SegmentType.courseRest:
+        // 조사 문제가 없도록 "다음은 + 이름" 순서로
+        return '휴식 ${KoreanSpeech.duration(durationMs)}, 다음은 ${r.name}';
     }
   }
 

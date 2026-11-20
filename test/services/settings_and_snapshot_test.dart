@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:fitness_timer/engine/timer_core.dart';
 import 'package:fitness_timer/models/app_settings.dart';
 import 'package:fitness_timer/models/presets.dart';
+import 'package:fitness_timer/models/workout.dart';
 import 'package:fitness_timer/services/run/run_snapshot_store.dart';
 import 'package:fitness_timer/services/storage/settings_store.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -66,9 +68,10 @@ void main() {
     test('저장 → 불러오기 → 지우기', () async {
       var now = 1000;
       final s = RunSnapshotStore(dir.path, now: () => now);
-      await s.save(Presets.tabata, cp, '라운드 1/8');
+      await s.save(Workout.single(Presets.tabata), cp, '라운드 1/8');
       final saved = await s.load();
-      expect(saved!.routine.id, Presets.tabata.id);
+      expect(saved!.workout.routines.single.id, Presets.tabata.id);
+      expect(saved.workout.isCourse, isFalse);
       expect(saved.checkpoint.segmentIndex, 2);
       expect(saved.progressLabel, '라운드 1/8');
       await s.clear();
@@ -78,7 +81,7 @@ void main() {
     test('30분이 지나면 이어하기 대상에서 빼고 지운다', () async {
       var now = 1000;
       final s = RunSnapshotStore(dir.path, now: () => now);
-      await s.save(Presets.tabata, cp, '');
+      await s.save(Workout.single(Presets.tabata), cp, '');
       now += const Duration(minutes: 31).inMilliseconds;
       expect(await s.load(), isNull);
       now = 1000;
@@ -88,14 +91,47 @@ void main() {
     test('저장 직후 지우기를 불러도 파일이 되살아나지 않는다', () async {
       final s = RunSnapshotStore(dir.path);
       // 기다리지 않고 연달아 호출 (서비스에서 운동이 끝나는 순간과 같은 상황)
-      s.save(Presets.tabata, cp, '');
-      s.save(Presets.tabata, cp, '');
+      s.save(Workout.single(Presets.tabata), cp, '');
+      s.save(Workout.single(Presets.tabata), cp, '');
       await s.clear();
       expect(await s.load(), isNull);
       expect(
         File('${dir.path}/${RunSnapshotStore.fileName}').existsSync(),
         isFalse,
       );
+    });
+
+    test('코스 기능 전 형식(루틴 하나)도 읽는다', () async {
+      await File('${dir.path}/${RunSnapshotStore.fileName}').writeAsString(
+        jsonEncode({
+          'routine': Presets.hiit.toJson(),
+          'checkpoint': cp.toJson(),
+          'savedAt': 1000,
+          'progress': '라운드 2/8',
+        }),
+      );
+      final saved = await RunSnapshotStore(dir.path, now: () => 2000).load();
+      expect(saved!.workout.routines.single.id, Presets.hiit.id);
+      expect(saved.workout.name, Presets.hiit.name);
+    });
+
+    test('코스 저장 → 불러오기', () async {
+      final s = RunSnapshotStore(dir.path, now: () => 1000);
+      final w = Workout(
+        name: '아침 코스',
+        routines: [Presets.tabata, Presets.plank],
+        restsMs: [45000],
+        courseId: 'c1',
+      );
+      await s.save(w, cp, '');
+      final saved = await s.load();
+      expect(saved!.workout.isCourse, isTrue);
+      expect(saved.workout.name, '아침 코스');
+      expect(saved.workout.routines.map((r) => r.id), [
+        Presets.tabata.id,
+        Presets.plank.id,
+      ]);
+      expect(saved.workout.restsMs, [45000]);
     });
 
     test('깨진 파일은 null', () async {

@@ -7,7 +7,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import '../../engine/timer_core.dart';
 import '../../engine/cue_planner.dart';
 import '../../models/app_settings.dart';
-import '../../models/routine.dart';
+import '../../models/workout.dart';
 import '../audio/cue_player.dart';
 import '../billing/trial_store.dart';
 import 'run_labels.dart';
@@ -58,15 +58,15 @@ class RunTaskHandler extends TaskHandler {
       return;
     }
     final raw = await FlutterForegroundTask.getData<String>(
-      key: RunProtocol.routineKey,
+      key: RunProtocol.workoutKey,
     );
-    if (raw == null) {
+    final workout = raw == null
+        ? null
+        : Workout.fromJson((jsonDecode(raw) as Map).cast<String, Object?>());
+    if (workout == null || workout.routines.isEmpty) {
       await FlutterForegroundTask.stopService();
       return;
     }
-    final routine = Routine.fromJson(
-      (jsonDecode(raw) as Map).cast<String, Object?>(),
-    );
     final settings = await _readJson(RunProtocol.settingsKey);
     final app = settings == null
         ? const AppSettings()
@@ -96,8 +96,8 @@ class RunTaskHandler extends TaskHandler {
     _player = player;
 
     _stopwatch.start();
-    final core = TimerCore(
-      routine: routine,
+    final core = TimerCore.workout(
+      workout: workout,
       clock: () => _stopwatch.elapsedMilliseconds,
       settings: CueSettings(countdownSeconds: app.countdownSeconds),
     );
@@ -128,11 +128,12 @@ class RunTaskHandler extends TaskHandler {
     if (core == null || store == null || _finished != null) return;
     _lastSnapshotAt = core.activeMs;
     final v = RunView.from(core);
-    store.save(core.routine, core.checkpoint, RunLabels.progress(v)).catchError(
-      (Object e) {
-        debugPrint('RunTaskHandler: 진행 상태 저장 실패 $e');
-      },
-    );
+    final label = v.isCourse
+        ? '${RunLabels.coursePosition(v)} · ${RunLabels.progress(v)}'
+        : RunLabels.progress(v);
+    store.save(core.workout, core.checkpoint, label).catchError((Object e) {
+      debugPrint('RunTaskHandler: 진행 상태 저장 실패 $e');
+    });
   }
 
   void _handle(List<EngineEvent> events) {
@@ -196,7 +197,7 @@ class RunTaskHandler extends TaskHandler {
       'type': RunProtocol.finished,
       'totalActiveMs': f.totalActiveMs,
       'stopped': f.stopped,
-      'routineName': core.routine.name,
+      'routineName': core.workout.name,
       'view': RunView.from(core).toMap(),
     });
   }
@@ -221,11 +222,14 @@ class RunTaskHandler extends TaskHandler {
     _lastNotifyStatus = v.status;
 
     final paused = v.status == RunStatus.paused;
+    final title = v.isCourse
+        ? '${v.workoutName} · ${RunLabels.coursePosition(v)}'
+        : v.routineName;
     final main = v.isRepWork
         ? '${RunLabels.segment(v.segmentType, isReps: v.isReps)} ${((v.completedReps ?? 0) + 1).clamp(1, v.targetReps!)}/${v.targetReps}회'
         : '${RunLabels.segment(v.segmentType, isReps: v.isReps)} ${RunLabels.clock(v.segmentRemainingMs)}';
     FlutterForegroundTask.updateService(
-      notificationTitle: paused ? '일시정지 · ${v.routineName}' : v.routineName,
+      notificationTitle: paused ? '일시정지 · $title' : title,
       notificationText: '$main · ${RunLabels.progress(v)}',
       notificationButtons: statusChanged
           ? [

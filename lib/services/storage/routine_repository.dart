@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../../models/course.dart';
 import '../../models/routine.dart';
 
 /// 내 루틴 목록 정렬 (docs/02_기능_명세.md 8장)
@@ -22,8 +23,12 @@ class RoutineData {
     Map<String, int>? lastUsed,
     List<String>? customOrder,
     List<String>? presetOrder,
+    List<Course>? courses,
+    List<String>? courseOrder,
     this.sort = RoutineSort.recent,
   }) : routines = routines ?? [],
+       courses = courses ?? [],
+       courseOrder = courseOrder ?? [],
        customOrder = customOrder ?? [],
        presetOrder = presetOrder ?? [],
        createdAt = createdAt ?? {},
@@ -47,6 +52,12 @@ class RoutineData {
 
   /// 프리셋 표시 순서 (프리셋 id). 비어 있으면 기본 순서.
   final List<String> presetOrder;
+
+  /// 코스 (docs/02 8-1장). 만든 시각은 [createdAt]에 함께 둔다.
+  final List<Course> courses;
+
+  /// 코스 표시 순서 (코스 id). 순서에 없는 코스는 맨 위에 최신순.
+  final List<String> courseOrder;
 
   RoutineSort sort;
 }
@@ -96,6 +107,11 @@ class RoutineRepository {
     'lastUsed': d.lastUsed,
     'customOrder': d.customOrder,
     'presetOrder': d.presetOrder,
+    'courses': [
+      for (final c in d.courses)
+        {...c.toJson(), 'createdAt': d.createdAt[c.id] ?? 0},
+    ],
+    'courseOrder': d.courseOrder,
     'sort': d.sort.name,
   };
 
@@ -115,6 +131,15 @@ class RoutineRepository {
       routines.add(r);
       createdAt[r.id] = (m['createdAt'] as num?)?.toInt() ?? 0;
     }
+    final courses = <Course>[];
+    for (final item in (j['courses'] as List? ?? const [])) {
+      if (item is! Map) continue;
+      final m = item.cast<String, Object?>();
+      final c = Course.fromJson(m);
+      if (c.id.isEmpty) continue;
+      courses.add(c);
+      createdAt[c.id] = (m['createdAt'] as num?)?.toInt() ?? 0;
+    }
     final lastUsed = <String, int>{};
     final lu = j['lastUsed'];
     if (lu is Map) {
@@ -132,6 +157,8 @@ class RoutineRepository {
       lastUsed: lastUsed,
       customOrder: _strings(j['customOrder']),
       presetOrder: _strings(j['presetOrder']),
+      courses: courses,
+      courseOrder: _strings(j['courseOrder']),
       sort:
           RoutineSort.values.where((e) => e.name == j['sort']).firstOrNull ??
           RoutineSort.recent,

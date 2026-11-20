@@ -54,6 +54,7 @@ class PhaseColors {
       SegmentType.work => work,
       SegmentType.rest => isReps ? setRest : rest,
       SegmentType.setRest => setRest,
+      SegmentType.courseRest => rest,
       null => setRest,
     };
   }

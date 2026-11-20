@@ -9,6 +9,11 @@ class RunView {
   const RunView({
     required this.status,
     required this.routineName,
+    this.workoutName = '',
+    this.isCourse = false,
+    this.partIndex = 0,
+    this.partCount = 1,
+    this.nextRoutineName,
     required this.isReps,
     required this.rounds,
     required this.sets,
@@ -34,7 +39,20 @@ class RunView {
   });
 
   final RunStatus status;
+
+  /// 지금 진행 중인 루틴 이름 (코스의 루틴 사이 휴식에서는 다음 루틴)
   final String routineName;
+
+  /// 코스 이름. 루틴 하나면 루틴 이름과 같다.
+  final String workoutName;
+  final bool isCourse;
+
+  /// 코스 안에서 몇 번째 루틴인지 (0부터)
+  final int partIndex;
+  final int partCount;
+
+  /// 다음 구간이 다른 루틴의 첫 운동이면 그 루틴 이름 (코스)
+  final String? nextRoutineName;
   final bool isReps;
   final int rounds;
   final int sets;
@@ -67,8 +85,11 @@ class RunView {
 
   factory RunView.from(TimerCore core) {
     final s = core.snapshot();
-    final r = core.routine;
     final seg = s.segment;
+    final w = core.workout;
+    // 끝났으면 마지막 루틴 기준
+    final part = seg?.part ?? (w.routines.length - 1).clamp(0, 1 << 20);
+    final r = w.routines.isEmpty ? null : w.routines[part];
     final nextIdx = s.segmentIndex + 1;
     final next = seg != null && nextIdx < core.segments.length
         ? core.segments[nextIdx]
@@ -76,15 +97,22 @@ class RunView {
     final tp = s.tempo;
     return RunView(
       status: s.status,
-      routineName: r.name,
-      isReps: r.isReps,
-      rounds: r.rounds,
-      sets: r.effectiveSets,
+      routineName: r?.name ?? w.name,
+      workoutName: w.name,
+      isCourse: w.isCourse,
+      partIndex: part,
+      partCount: w.isCourse ? w.routines.length : 1,
+      nextRoutineName: w.isCourse && next != null && next.isFirstWork
+          ? w.routines[next.part].name
+          : null,
+      isReps: r?.isReps ?? false,
+      rounds: r?.rounds ?? 1,
+      sets: r?.effectiveSets ?? 1,
       segmentIndex: s.segmentIndex,
       segmentCount: s.segmentCount,
       segmentType: seg?.type,
-      round: seg?.round ?? r.rounds,
-      set: seg?.set ?? r.effectiveSets,
+      round: seg?.round ?? r?.rounds ?? 1,
+      set: seg?.set ?? r?.effectiveSets ?? 1,
       segmentElapsedMs: s.segmentElapsedMs,
       segmentDurationMs: s.segmentDurationMs,
       totalActiveMs: s.totalActiveMs,
@@ -96,15 +124,20 @@ class RunView {
       completedReps: tp?.completedReps,
       tempoPhase: tp?.phase,
       repElapsedMs: tp?.repElapsedMs,
-      tempoDownMs: seg?.isRepWork == true ? r.tempo.downMs : null,
-      tempoHoldMs: seg?.isRepWork == true ? r.tempo.holdMs : null,
-      tempoUpMs: seg?.isRepWork == true ? r.tempo.upMs : null,
+      tempoDownMs: seg?.isRepWork == true ? r?.tempo.downMs : null,
+      tempoHoldMs: seg?.isRepWork == true ? r?.tempo.holdMs : null,
+      tempoUpMs: seg?.isRepWork == true ? r?.tempo.upMs : null,
     );
   }
 
   Map<String, Object?> toMap() => {
     'status': status.name,
     'routineName': routineName,
+    'workoutName': workoutName,
+    'isCourse': isCourse,
+    'partIndex': partIndex,
+    'partCount': partCount,
+    'nextRoutineName': nextRoutineName,
     'isReps': isReps,
     'rounds': rounds,
     'sets': sets,
@@ -137,6 +170,11 @@ class RunView {
     return RunView(
       status: byName(RunStatus.values, m['status']) ?? RunStatus.idle,
       routineName: m['routineName'] as String? ?? '',
+      workoutName: m['workoutName'] as String? ?? '',
+      isCourse: m['isCourse'] as bool? ?? false,
+      partIndex: i('partIndex'),
+      partCount: oi('partCount') ?? 1,
+      nextRoutineName: m['nextRoutineName'] as String?,
       isReps: m['isReps'] as bool? ?? false,
       rounds: i('rounds'),
       sets: i('sets'),
@@ -184,6 +222,11 @@ class RunView {
     return RunView(
       status: status,
       routineName: routineName,
+      workoutName: workoutName,
+      isCourse: isCourse,
+      partIndex: partIndex,
+      partCount: partCount,
+      nextRoutineName: nextRoutineName,
       isReps: isReps,
       rounds: rounds,
       sets: sets,
