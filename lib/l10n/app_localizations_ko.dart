@@ -625,6 +625,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get voiceData => '한국어 음성';
 
   @override
+  String get voiceChoice => '목소리';
+
+  @override
+  String get voiceDefault => '기본';
+
+  @override
+  String voiceNumber(int number) {
+    return '음성 $number';
+  }
+
+  @override
   String get checking => '확인 중…';
 
   @override

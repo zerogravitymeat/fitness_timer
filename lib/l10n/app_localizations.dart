@@ -1184,6 +1184,24 @@ abstract class AppLocalizations {
   /// **'한국어 음성'**
   String get voiceData;
 
+  /// No description provided for @voiceChoice.
+  ///
+  /// In ko, this message translates to:
+  /// **'목소리'**
+  String get voiceChoice;
+
+  /// No description provided for @voiceDefault.
+  ///
+  /// In ko, this message translates to:
+  /// **'기본'**
+  String get voiceDefault;
+
+  /// No description provided for @voiceNumber.
+  ///
+  /// In ko, this message translates to:
+  /// **'음성 {number}'**
+  String voiceNumber(int number);
+
   /// No description provided for @checking.
   ///
   /// In ko, this message translates to:

@@ -22,6 +22,7 @@ class AppSettings {
     this.speechSpeed = SpeechSpeed.normal,
     this.keepScreenOn = true,
     this.language,
+    this.voices = const {},
   });
 
   final bool sound;
@@ -38,6 +39,9 @@ class AppSettings {
   /// 화면·음성 언어 코드 ("ko", "en"). null이면 기기 언어를 따른다.
   final String? language;
 
+  /// TTS 언어("ko-KR")별로 고른 기기 음성 이름. 없으면 엔진 기본 음성.
+  final Map<String, String> voices;
+
   static const countdownChoices = [0, 3, 5];
   static const languageChoices = ['ko', 'en'];
 
@@ -48,6 +52,7 @@ class AppSettings {
     int? countdownSeconds,
     SpeechSpeed? speechSpeed,
     bool? keepScreenOn,
+    Map<String, String>? voices,
   }) => AppSettings(
     sound: sound ?? this.sound,
     vibration: vibration ?? this.vibration,
@@ -56,6 +61,16 @@ class AppSettings {
     speechSpeed: speechSpeed ?? this.speechSpeed,
     keepScreenOn: keepScreenOn ?? this.keepScreenOn,
     language: language,
+    voices: voices ?? this.voices,
+  );
+
+  /// [ttsLanguage]의 음성을 고른다. null이면 기본 음성으로 되돌린다.
+  AppSettings withVoice(String ttsLanguage, String? name) => copyWith(
+    voices: {
+      for (final e in voices.entries)
+        if (e.key != ttsLanguage) e.key: e.value,
+      ttsLanguage: ?name,
+    },
   );
 
   /// [copyWith]로는 null(기기 언어)로 되돌릴 수 없어 따로 둔다
@@ -67,6 +82,7 @@ class AppSettings {
     speechSpeed: speechSpeed,
     keepScreenOn: keepScreenOn,
     language: languageChoices.contains(language) ? language : null,
+    voices: voices,
   );
 
   Map<String, Object?> toJson() => {
@@ -77,6 +93,7 @@ class AppSettings {
     'speechSpeed': speechSpeed.name,
     'keepScreenOn': keepScreenOn,
     'language': language,
+    'voices': voices,
   };
 
   /// 빠지거나 이상한 값은 기본값으로
@@ -99,6 +116,11 @@ class AppSettings {
       language: languageChoices.contains(j['language'])
           ? j['language'] as String
           : null,
+      voices: {
+        if (j['voices'] case final Map<String, Object?> m)
+          for (final e in m.entries)
+            if (e.value case final String name) e.key: name,
+      },
     );
   }
 }

@@ -21,6 +21,29 @@ void main() {
     expect(AppSettings.fromJson({'language': 'fr'}).language, isNull);
   });
 
+  test('음성: 언어별 저장·복원, null이면 기본 음성', () {
+    final s = const AppSettings()
+        .withVoice('ko-KR', 'ko-kr-x-ism-local')
+        .withVoice('en-US', 'en-us-x-iol-local');
+    final back = AppSettings.fromJson(s.toJson());
+    expect(back.voices, {
+      'ko-KR': 'ko-kr-x-ism-local',
+      'en-US': 'en-us-x-iol-local',
+    });
+    expect(back.withLanguage('en').voices, back.voices);
+    expect(back.withVoice('ko-KR', null).voices, {
+      'en-US': 'en-us-x-iol-local',
+    });
+    expect(const AppSettings().voices, isEmpty);
+    expect(AppSettings.fromJson({'voices': 'x'}).voices, isEmpty);
+    expect(
+      AppSettings.fromJson({
+        'voices': {'ko-KR': 3, 'en-US': 'a'},
+      }).voices,
+      {'en-US': 'a'},
+    );
+  });
+
   late Directory dir;
   setUp(() async => dir = await Directory.systemTemp.createTemp('ft_test'));
   tearDown(() => dir.delete(recursive: true));

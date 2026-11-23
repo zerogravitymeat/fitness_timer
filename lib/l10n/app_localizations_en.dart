@@ -679,6 +679,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceData => 'English voice';
 
   @override
+  String get voiceChoice => 'Voice';
+
+  @override
+  String get voiceDefault => 'Default';
+
+  @override
+  String voiceNumber(int number) {
+    return 'Voice $number';
+  }
+
+  @override
   String get checking => 'Checking…';
 
   @override

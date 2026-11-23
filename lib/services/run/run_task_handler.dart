@@ -99,6 +99,7 @@ class RunTaskHandler extends TaskHandler {
         voice: app.voice,
         speechRate: app.speechSpeed.ttsRate,
         ttsLanguage: _cueText.ttsLanguage,
+        voiceName: app.voices[_cueText.ttsLanguage],
       ),
     );
     await player.init(

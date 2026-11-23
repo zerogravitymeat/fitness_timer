@@ -455,6 +455,16 @@
   "speedFast": "빠르게",
   "previewVoice": "미리 듣기",
   "voiceData": "한국어 음성",
+  "voiceChoice": "목소리",
+  "voiceDefault": "기본",
+  "voiceNumber": "음성 {number}",
+  "@voiceNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
   "checking": "확인 중…",
   "available": "사용 가능",
   "voiceMissing": "설치 필요. 설치 전에는 비프음과 진동으로만 안내해요.",

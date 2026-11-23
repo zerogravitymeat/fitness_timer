@@ -12,6 +12,7 @@ import '../paywall/paywall_page.dart';
 import '../../engine/cue_text.dart';
 import '../../l10n/l10n.dart';
 import '../../services/app_language.dart';
+import '../../services/audio/tts_voices.dart';
 
 /// S5 설정 (docs/03_화면_설계.md 7장). 기능 확인용 기본 UI.
 class SettingsPage extends StatefulWidget {
@@ -34,6 +35,9 @@ class _SettingsPageState extends State<SettingsPage> {
   /// 그 언어의 TTS 음성이 있는지. null = 확인 중
   bool? _voiceAvailable;
 
+  /// 그 언어로 고를 수 있는 기기 음성. 2개 이상일 때만 선택 항목을 보인다.
+  List<Map<String, String>> _voices = const [];
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -43,6 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (text.ttsLanguage != _cueText?.ttsLanguage) {
       _cueText = text;
       _voiceAvailable = null;
+      _voices = const [];
       _checkVoice(text.ttsLanguage);
     }
   }
@@ -60,13 +65,31 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (_) {
       ok = false;
     }
-    if (mounted) setState(() => _voiceAvailable = ok);
+    final voices = ok
+        ? await TtsVoices.installed(_tts, language)
+        : const <Map<String, String>>[];
+    if (mounted) {
+      setState(() {
+        _voiceAvailable = ok;
+        _voices = voices;
+      });
+    }
+  }
+
+  /// 저장된 음성이 목록에 없으면(지워졌거나 다른 엔진) 기본으로 보인다
+  String? _voiceName(AppSettings s) {
+    final name = s.voices[_cueText?.ttsLanguage];
+    return _voices.any((v) => v['name'] == name) ? name : null;
   }
 
   Future<void> _preview(AppSettings s) async {
-    await _tts.setLanguage(_cueText!.ttsLanguage);
+    final language = _cueText!.ttsLanguage;
+    final text = context.l10n.ttsPreviewText;
+    // setLanguage가 엔진 기본 음성으로 되돌린 뒤 고른 음성을 얹는다
+    await _tts.setLanguage(language);
+    await TtsVoices.apply(_tts, language, _voiceName(s));
     await _tts.setSpeechRate(s.speechSpeed.ttsRate);
-    await _tts.speak(context.l10n.ttsPreviewText);
+    await _tts.speak(text);
   }
 
   Future<void> _openTtsSettings() async {
@@ -199,6 +222,30 @@ class _SettingsPageState extends State<SettingsPage> {
                           : null,
                     ),
                   ),
+                  if (_voices.length >= 2)
+                    ListTile(
+                      title: Text(context.l10n.voiceChoice),
+                      trailing: DropdownButton<String?>(
+                        value: _voiceName(s),
+                        underline: const SizedBox.shrink(),
+                        onChanged: (v) {
+                          final next = s.withVoice(_cueText!.ttsLanguage, v);
+                          set(next);
+                          _preview(next);
+                        },
+                        items: [
+                          DropdownMenuItem(
+                            child: Text(context.l10n.voiceDefault),
+                          ),
+                          // 엔진의 음성 이름("ko-kr-x-ism-local")은 읽기 어려워 번호로 보인다
+                          for (final (i, v) in _voices.indexed)
+                            DropdownMenuItem(
+                              value: v['name'],
+                              child: Text(context.l10n.voiceNumber(i + 1)),
+                            ),
+                        ],
+                      ),
+                    ),
                   ListTile(
                     title: Text(context.l10n.voiceData),
                     subtitle: Text(switch (_voiceAvailable) {

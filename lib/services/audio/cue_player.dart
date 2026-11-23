@@ -4,6 +4,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:vibration/vibration.dart';
 
 import '../../engine/cue.dart';
+import 'tts_voices.dart';
 
 /// 알림 재생 설정 (docs/02_기능_명세.md 6.3절)
 class CuePlayerSettings {
@@ -13,6 +14,7 @@ class CuePlayerSettings {
     this.voice = true,
     this.speechRate = 0.5,
     this.ttsLanguage = 'ko-KR',
+    this.voiceName,
   });
 
   final bool sound;
@@ -24,6 +26,9 @@ class CuePlayerSettings {
 
   /// TTS 언어 (예: "ko-KR", "en-US")
   final String ttsLanguage;
+
+  /// 고른 기기 음성 이름. null이면 엔진 기본 음성.
+  final String? voiceName;
 }
 
 /// 엔진이 낸 [Cue]를 실제 소리·진동·음성으로 재생한다.
@@ -97,6 +102,7 @@ class CuePlayer {
           .isLanguageAvailable(settings.ttsLanguage)
           .timeout(const Duration(seconds: 3));
       await tts.setLanguage(settings.ttsLanguage);
+      await TtsVoices.apply(tts, settings.ttsLanguage, settings.voiceName);
       await tts.setSpeechRate(settings.speechRate);
       await tts.setQueueMode(0); // flush: 새 안내가 이전 안내를 끊는다
       await tts.awaitSpeakCompletion(false);
