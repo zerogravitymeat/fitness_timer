@@ -86,7 +86,13 @@ class _SettingsPageState extends State<SettingsPage> {
         return Scaffold(
           appBar: AppBar(title: Text(context.l10n.settings)),
           body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+            // padding을 직접 주면 ListView가 하단 시스템 바 높이를 더해 주지 않는다.
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              56 + MediaQuery.paddingOf(context).bottom,
+            ),
             children: [
               _Group(context.l10n.language),
               _Card(
