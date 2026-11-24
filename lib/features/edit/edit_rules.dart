@@ -53,6 +53,21 @@ abstract final class EditRules {
       r.endCondition == EndCondition.time &&
       r.sets > 1;
 
+  /// 이름 추천을 골랐을 때 설정을 자동으로 채워도 되는지.
+  /// 새 루틴이고, 설정이 처음 그대로이거나 직전에 자동으로 채운 그대로일 때만.
+  /// 사용자가 직접 바꾼 값은 덮어쓰지 않는다.
+  static bool canAutoFill({
+    required bool isNew,
+    required Routine current,
+    required Routine initial,
+    Routine? lastAutoFilled,
+  }) {
+    if (!isNew) return false;
+    bool same(Routine o) =>
+        current.sameSettingsAs(o.copyWith(name: current.name));
+    return same(initial) || (lastAutoFilled != null && same(lastAutoFilled));
+  }
+
   /// 모드 전환. 횟수 모드는 세트 수 1로 고정한다.
   static Routine switchMode(Routine r, EndCondition to) =>
       r.copyWith(endCondition: to, sets: to == EndCondition.reps ? 1 : r.sets);

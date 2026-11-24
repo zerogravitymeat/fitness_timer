@@ -202,5 +202,8 @@
   "presetPlank": "Plank",
   "presetStrength": "Strength Sets",
   "language": "Language",
-  "languageSystem": "Use phone language"
+  "languageSystem": "Use phone language",
+  "autoFillDefaults": "Set to {name} defaults",
+  "autoFillCopied": "Copied settings from \"{name}\"",
+  "undo": "Undo"
 }

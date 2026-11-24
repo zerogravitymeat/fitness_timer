@@ -1315,6 +1315,24 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'기기 언어 따르기'**
   String get languageSystem;
+
+  /// No description provided for @autoFillDefaults.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} 기본값으로 맞췄어요'**
+  String autoFillDefaults(String name);
+
+  /// No description provided for @autoFillCopied.
+  ///
+  /// In ko, this message translates to:
+  /// **'\"{name}\" 설정을 가져왔어요'**
+  String autoFillCopied(String name);
+
+  /// No description provided for @undo.
+  ///
+  /// In ko, this message translates to:
+  /// **'되돌리기'**
+  String get undo;
 }
 
 class _AppLocalizationsDelegate

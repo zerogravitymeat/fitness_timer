@@ -746,4 +746,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageSystem => 'Use phone language';
+
+  @override
+  String autoFillDefaults(String name) {
+    return 'Set to $name defaults';
+  }
+
+  @override
+  String autoFillCopied(String name) {
+    return 'Copied settings from \"$name\"';
+  }
+
+  @override
+  String get undo => 'Undo';
 }

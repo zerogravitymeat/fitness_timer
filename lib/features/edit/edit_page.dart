@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 
 import '../../design/glass.dart';
 import '../../design/tokens.dart';
+import '../../models/exercise_names.dart';
 import '../../models/routine.dart';
 import '../common/routine_summary.dart';
 import '../../l10n/l10n.dart';
 import 'edit_rules.dart';
+import 'name_search.dart';
 
 /// 편집 결과. [start]가 true면 저장 후 바로 시작.
 class EditResult {
@@ -19,10 +21,18 @@ class EditResult {
 
 /// S2 루틴 편집 (docs/03_화면_설계.md 4장). 기능 확인용 기본 UI.
 class EditPage extends StatefulWidget {
-  const EditPage({super.key, required this.initial, required this.isNew});
+  const EditPage({
+    super.key,
+    required this.initial,
+    required this.isNew,
+    this.myRoutines = const [],
+  });
 
   final Routine initial;
   final bool isNew;
+
+  /// 이름 자동완성에 함께 보여줄 내 루틴. 고르면 그 설정을 가져온다.
+  final List<Routine> myRoutines;
 
   @override
   State<EditPage> createState() => _EditPageState();
@@ -31,6 +41,10 @@ class EditPage extends StatefulWidget {
 class _EditPageState extends State<EditPage> {
   late Routine _r = widget.initial;
   late final _name = TextEditingController(text: widget.initial.name);
+  final _nameFocus = FocusNode();
+
+  /// 직전에 이름 추천으로 자동으로 채운 설정. 다른 추천을 고르면 다시 바꿔도 된다.
+  Routine? _autoFilled;
   late bool _customTempo = !_presetTempos.contains(widget.initial.tempo);
 
   static const _presetTempos = [Tempo.slow, Tempo.normal, Tempo.fast];
@@ -55,6 +69,7 @@ class _EditPageState extends State<EditPage> {
   @override
   void dispose() {
     _name.dispose();
+    _nameFocus.dispose();
     super.dispose();
   }
 
@@ -143,14 +158,7 @@ class _EditPageState extends State<EditPage> {
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
             _card([
-              TextField(
-                controller: _name,
-                maxLength: RoutineLimits.maxNameLength,
-                decoration: InputDecoration(
-                  labelText: context.l10n.name,
-                  errorText: nameOk ? null : context.l10n.nameRequired,
-                ),
-              ),
+              _nameField(nameOk),
               const SizedBox(height: 8),
               _Label(context.l10n.workoutMode),
               SegmentedButton<EndCondition>(
@@ -332,6 +340,117 @@ class _EditPageState extends State<EditPage> {
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 추천에서 이름을 고르면 새 루틴의 설정을 채운다.
+  /// 내 루틴이면 그 설정을, 운동 목록이면 운동별 기본값을 쓴다.
+  void _onPickName(String name) {
+    final ok = EditRules.canAutoFill(
+      isNew: widget.isNew,
+      current: _r,
+      initial: widget.initial,
+      lastAutoFilled: _autoFilled,
+    );
+    if (!ok) return;
+    final mine = widget.myRoutines.where((r) => r.name == name).firstOrNull;
+    final defaults = ExerciseNames.defaultsOf(name);
+    final Routine next;
+    final String message;
+    if (mine != null) {
+      next = mine.copyWith(id: _r.id, name: _r.name, isPreset: false);
+      message = context.l10n.autoFillCopied(name);
+    } else if (defaults != null) {
+      next = defaults.applyTo(_r);
+      message = context.l10n.autoFillDefaults(name);
+    } else {
+      return;
+    }
+    if (next.sameSettingsAs(_r)) return;
+
+    final before = _r, beforeCustom = _customTempo, beforeAuto = _autoFilled;
+    setState(() {
+      _r = next;
+      _autoFilled = next;
+      _customTempo = !_presetTempos.contains(next.tempo);
+    });
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          action: SnackBarAction(
+            label: context.l10n.undo,
+            onPressed: () => setState(() {
+              _r = before;
+              _customTempo = beforeCustom;
+              _autoFilled = beforeAuto;
+            }),
+          ),
+        ),
+      );
+  }
+
+  /// 이름 입력칸. 치는 동안 운동 이름과 내 루틴 이름을 추천한다.
+  Widget _nameField(bool nameOk) {
+    final myNames = [for (final r in widget.myRoutines) r.name];
+    final mine = myNames.toSet();
+    final common = ExerciseNames.namesFor(
+      Localizations.localeOf(context).languageCode,
+    );
+    return RawAutocomplete<String>(
+      textEditingController: _name,
+      focusNode: _nameFocus,
+      onSelected: _onPickName,
+      optionsBuilder: (v) =>
+          NameSearch.search(v.text, mine: myNames, common: common),
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) =>
+          TextField(
+            controller: controller,
+            focusNode: focusNode,
+            maxLength: RoutineLimits.maxNameLength,
+            onSubmitted: (_) => onSubmitted(),
+            decoration: InputDecoration(
+              labelText: context.l10n.name,
+              errorText: nameOk ? null : context.l10n.nameRequired,
+            ),
+          ),
+      optionsViewBuilder: (context, onSelected, options) => Align(
+        alignment: Alignment.topLeft,
+        child: Padding(
+          // 글자 수 표시 줄 위로 붙인다
+          padding: const EdgeInsets.only(top: 4),
+          child: Material(
+            color: const Color(0xFF1A2033),
+            elevation: 8,
+            borderRadius: BorderRadius.circular(14),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: 248,
+                maxWidth: MediaQuery.sizeOf(context).width - 64,
+              ),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                shrinkWrap: true,
+                children: [
+                  for (final o in options)
+                    ListTile(
+                      dense: true,
+                      leading: Icon(
+                        mine.contains(o) ? Icons.history : Icons.fitness_center,
+                        size: 18,
+                        color: AppColors.textTertiary,
+                      ),
+                      title: Text(o, style: const TextStyle(fontSize: 16)),
+                      onTap: () => onSelected(o),
+                    ),
                 ],
               ),
             ),

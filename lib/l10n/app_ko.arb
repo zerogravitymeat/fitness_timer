@@ -483,5 +483,22 @@
   "presetPlank": "플랭크",
   "presetStrength": "근력 세트",
   "language": "언어",
-  "languageSystem": "기기 언어 따르기"
+  "languageSystem": "기기 언어 따르기",
+  "autoFillDefaults": "{name} 기본값으로 맞췄어요",
+  "@autoFillDefaults": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "autoFillCopied": "\"{name}\" 설정을 가져왔어요",
+  "@autoFillCopied": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "되돌리기"
 }

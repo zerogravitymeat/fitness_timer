@@ -691,4 +691,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get languageSystem => '기기 언어 따르기';
+
+  @override
+  String autoFillDefaults(String name) {
+    return '$name 기본값으로 맞췄어요';
+  }
+
+  @override
+  String autoFillCopied(String name) {
+    return '\"$name\" 설정을 가져왔어요';
+  }
+
+  @override
+  String get undo => '되돌리기';
 }

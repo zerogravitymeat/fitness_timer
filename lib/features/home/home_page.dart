@@ -193,7 +193,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (!await _requireCustom() || !mounted) return;
     final res = await Navigator.of(context).push<EditResult>(
       MaterialPageRoute(
-        builder: (_) => EditPage(initial: initial, isNew: isNew),
+        builder: (_) => EditPage(
+          initial: initial,
+          isNew: isNew,
+          myRoutines: _store.myRoutines,
+        ),
       ),
     );
     if (res == null) return;
