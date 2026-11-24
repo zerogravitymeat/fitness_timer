@@ -110,6 +110,8 @@ class _EditPageState extends State<EditPage> {
   void _finish({required bool start}) {
     final name = EditRules.validName(_name.text);
     if (name == null) return;
+    // 자동 채우기 안내가 홈 화면까지 따라가지 않게
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     Navigator.of(context)
         .pop(EditResult(_r.copyWith(name: name).normalized(), start: start));
   }
@@ -146,7 +148,11 @@ class _EditPageState extends State<EditPage> {
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final nav = Navigator.of(context);
-        if (await _confirmDiscard()) nav.pop();
+        final messenger = ScaffoldMessenger.of(context);
+        if (await _confirmDiscard()) {
+          messenger.hideCurrentSnackBar();
+          nav.pop();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -385,6 +391,10 @@ class _EditPageState extends State<EditPage> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
+          // 버튼이 있는 SnackBar는 기본으로 사라지지 않으므로
+          // 직접 시간이 지나면 닫히게 한다
+          persist: false,
+          duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: context.l10n.undo,
             onPressed: () => setState(() {
