@@ -49,9 +49,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get close => 'Close';
 
   @override
-  String get add => 'Add';
-
-  @override
   String get name => 'Name';
 
   @override
@@ -82,9 +79,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myRoutines => 'My routines';
-
-  @override
-  String get presets => 'Presets';
 
   @override
   String get courses => 'Courses';
@@ -365,9 +359,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortCreated => 'Date created';
 
   @override
-  String get recent => 'Recent';
-
-  @override
   String get favorites => 'Favorites';
 
   @override
@@ -376,13 +367,78 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get courseEmptyHint =>
-      'Use the \"Add\" button below to chain your routines into a course. You can set the rest between routines, too.';
+      'Chain your routines into a course. You can set the rest between routines, too.';
 
   @override
   String get routinesEmpty => 'Save the workouts you do often as routines';
 
   @override
   String get createRoutine => 'Create routine';
+
+  @override
+  String get recentWorkout => 'Recent workout';
+
+  @override
+  String get myWorkouts => 'My workouts';
+
+  @override
+  String get basicWorkouts => 'Built-in workouts';
+
+  @override
+  String get alwaysFree => 'Always free';
+
+  @override
+  String get basicWorkoutsFirstTitle =>
+      'Start right away with a built-in workout';
+
+  @override
+  String get basicWorkoutsFirstBody =>
+      'Free to use anytime, no purchase needed';
+
+  @override
+  String tabRoutines(int count) {
+    return 'Routines $count';
+  }
+
+  @override
+  String tabCourses(int count) {
+    return 'Courses $count';
+  }
+
+  @override
+  String get sortTooltip => 'Sort';
+
+  @override
+  String get createCourse => 'Create course';
+
+  @override
+  String get lockedMineBanner => 'Available again in the full version';
+
+  @override
+  String get lockedMineAction => 'View';
+
+  @override
+  String freeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count free left',
+      one: '1 free left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get createNew => 'Create';
+
+  @override
+  String get copyPreset => 'Copy a built-in workout';
+
+  @override
+  String get copyPresetSubtitle => 'Make Tabata, HIIT, and more your own';
+
+  @override
+  String get pickPresetToCopy => 'Choose a built-in workout to copy';
 
   @override
   String startNamed(String name) {
@@ -547,7 +603,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trialUsedUpBody =>
-      'The 4 presets stay free.\nYour own routines need the full version.';
+      'The 4 built-in workouts stay free.\nYour own routines need the full version.';
 
   @override
   String get editCourse => 'Edit course';
@@ -640,7 +696,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetsFreeNote =>
-      'The 4 presets (Tabata, HIIT, Plank, Strength Sets)\nstay free without a purchase.';
+      'The 4 built-in workouts (Tabata, HIIT, Plank, Strength Sets)\nstay free without a purchase.';
 
   @override
   String get ttsPreviewText => '10 seconds of rest left';
@@ -724,7 +780,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fullVersionActive => 'Using full version';
 
   @override
-  String get trialEnded => 'Trial ended (presets stay free)';
+  String get trialEnded => 'Trial ended (built-in workouts stay free)';
 
   @override
   String get buyFullVersion => 'Buy full version';

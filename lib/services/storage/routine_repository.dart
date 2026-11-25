@@ -14,6 +14,9 @@ enum RoutineSort {
   custom,
 }
 
+/// 홈 "내 운동"에서 보고 있는 탭 (docs/03 3장). 마지막으로 본 탭을 기억한다.
+enum HomeTab { routines, courses }
+
 /// 파일에 저장되는 내용 전체
 class RoutineData {
   RoutineData({
@@ -22,16 +25,15 @@ class RoutineData {
     Set<String>? favorites,
     Map<String, int>? lastUsed,
     List<String>? customOrder,
-    List<String>? presetOrder,
     List<Course>? courses,
     List<String>? courseOrder,
     this.sort = RoutineSort.recent,
     this.courseSort = RoutineSort.recent,
+    this.homeTab = HomeTab.routines,
   }) : routines = routines ?? [],
        courses = courses ?? [],
        courseOrder = courseOrder ?? [],
        customOrder = customOrder ?? [],
-       presetOrder = presetOrder ?? [],
        createdAt = createdAt ?? {},
        favorites = favorites ?? {},
        lastUsed = lastUsed ?? {};
@@ -42,7 +44,7 @@ class RoutineData {
   /// 루틴 id → 만든 시각 (epoch ms)
   final Map<String, int> createdAt;
 
-  /// 즐겨찾기한 id. 프리셋 id도 들어갈 수 있다.
+  /// 즐겨찾기한 내 루틴 id. 프리셋은 즐겨찾기하지 않는다 (2026-11-25).
   final Set<String> favorites;
 
   /// 루틴 id → 마지막으로 시작한 시각 (epoch ms). 프리셋 id도 들어갈 수 있다.
@@ -50,9 +52,6 @@ class RoutineData {
 
   /// 내 루틴을 직접 정렬했을 때의 순서 (루틴 id)
   final List<String> customOrder;
-
-  /// 프리셋 표시 순서 (프리셋 id). 비어 있으면 기본 순서.
-  final List<String> presetOrder;
 
   /// 코스 (docs/02 8-1장). 만든 시각은 [createdAt]에 함께 둔다.
   final List<Course> courses;
@@ -64,6 +63,8 @@ class RoutineData {
 
   /// 코스 목록 정렬 (내 루틴 정렬과 따로)
   RoutineSort courseSort;
+
+  HomeTab homeTab;
 }
 
 /// 내 루틴을 JSON 파일 하나에 저장한다 (docs/05_기술_설계.md 5.1절).
@@ -110,7 +111,6 @@ class RoutineRepository {
     'favorites': d.favorites.toList()..sort(),
     'lastUsed': d.lastUsed,
     'customOrder': d.customOrder,
-    'presetOrder': d.presetOrder,
     'courses': [
       for (final c in d.courses)
         {...c.toJson(), 'createdAt': d.createdAt[c.id] ?? 0},
@@ -118,6 +118,7 @@ class RoutineRepository {
     'courseOrder': d.courseOrder,
     'sort': d.sort.name,
     'courseSort': d.courseSort.name,
+    'homeTab': d.homeTab.name,
   };
 
   static RoutineSort _sort(Object? v) =>
@@ -165,7 +166,6 @@ class RoutineRepository {
       },
       lastUsed: lastUsed,
       customOrder: _strings(j['customOrder']),
-      presetOrder: _strings(j['presetOrder']),
       courses: courses,
       courseOrder: _strings(j['courseOrder']),
       sort: _sort(j['sort']),
@@ -176,6 +176,9 @@ class RoutineRepository {
           : _strings(j['courseOrder']).isNotEmpty
           ? RoutineSort.custom
           : RoutineSort.recent,
+      homeTab:
+          HomeTab.values.where((e) => e.name == j['homeTab']).firstOrNull ??
+          HomeTab.routines,
     );
   }
 }

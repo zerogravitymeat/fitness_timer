@@ -27,7 +27,6 @@ void main() {
     now = 2000;
     await a.save(r('b', '상체'));
     await a.toggleFavorite('b');
-    await a.toggleFavorite(Presets.tabata.id);
     now = 3000;
     await a.markUsed('a');
     await a.setSort(RoutineSort.name);
@@ -35,7 +34,7 @@ void main() {
     final b = newStore();
     await b.load();
     expect(b.myRoutines.map((e) => e.name), ['상체', '하체']); // 이름순
-    expect(b.favorites.map((e) => e.id), containsAll(['b', Presets.tabata.id]));
+    expect(b.isFavorite('b'), isTrue);
     expect(b.recent!.id, 'a');
     expect(b.sort, RoutineSort.name);
     expect(b.byId('a')!.rounds, 3);
@@ -81,7 +80,7 @@ void main() {
     await s.markUsed('a');
     await s.delete('a');
     expect(s.myRoutines, isEmpty);
-    expect(s.favorites, isEmpty);
+    expect(s.isFavorite('a'), isFalse);
     expect(s.recent, isNull);
   });
 
@@ -123,22 +122,61 @@ void main() {
     expect(text, contains('"schemaVersion":1'));
   });
 
-  test('프리셋 순서 바꾸기: 저장 후 다시 불러와도 유지', () async {
+  test('프리셋은 항상 기본 순서이고 즐겨찾기할 수 없다', () async {
     final s = newStore();
     await s.load();
     expect(s.presets.map((e) => e.id), Presets.all.map((e) => e.id));
-    await s.movePreset(3, 0); // 근력 세트를 맨 위로
-    expect(s.presets.first.id, Presets.strength.id);
-    expect(s.presets.length, 4);
+    await s.toggleFavorite(Presets.tabata.id);
+    expect(s.isFavorite(Presets.tabata.id), isFalse);
+  });
 
-    final again = newStore();
-    await again.load();
-    expect(again.presets.map((e) => e.id), [
-      Presets.strength.id,
-      Presets.tabata.id,
-      Presets.hiit.id,
-      Presets.plank.id,
-    ]);
+  test('예전 파일의 프리셋 즐겨찾기·프리셋 순서는 무시한다', () async {
+    await File('${dir.path}/routines.json').writeAsString(
+      '{"schemaVersion":1,"routines":[],"favorites":["${Presets.hiit.id}"],'
+      '"presetOrder":["${Presets.strength.id}"]}',
+    );
+    final s = newStore();
+    await s.load();
+    expect(s.isFavorite(Presets.hiit.id), isFalse);
+    expect(s.presets.first.id, Presets.tabata.id);
+  });
+
+  test('즐겨찾기한 루틴은 정렬과 상관없이 맨 위', () async {
+    final s = newStore();
+    await s.load();
+    await s.save(r('a', '가'));
+    await s.save(r('b', '나'));
+    await s.save(r('c', '다'));
+    await s.setSort(RoutineSort.name);
+    await s.toggleFavorite('c');
+    expect(s.myRoutines.map((e) => e.id), ['c', 'a', 'b']);
+    expect(s.favoriteCount, 1);
+    await s.toggleFavorite('c');
+    expect(s.myRoutines.map((e) => e.id), ['a', 'b', 'c']);
+  });
+
+  test('순서 바꾸기는 즐겨찾기끼리, 나머지끼리만', () async {
+    final s = newStore();
+    await s.load();
+    await s.save(r('a', '가'));
+    await s.save(r('b', '나'));
+    await s.save(r('c', '다'));
+    await s.setSort(RoutineSort.name);
+    await s.toggleFavorite('c'); // c | a b
+    await s.moveMine(2, 0); // b를 즐겨찾기 위로 → 나머지 맨 위에서 멈춤
+    expect(s.myRoutines.map((e) => e.id), ['c', 'b', 'a']);
+    await s.moveMine(0, 2); // c를 아래로 → 즐겨찾기 자리 그대로
+    expect(s.myRoutines.map((e) => e.id), ['c', 'b', 'a']);
+  });
+
+  test('홈에서 마지막으로 본 탭을 기억한다', () async {
+    final a = newStore();
+    await a.load();
+    expect(a.homeTab, HomeTab.routines);
+    await a.setHomeTab(HomeTab.courses);
+    final b = newStore();
+    await b.load();
+    expect(b.homeTab, HomeTab.courses);
   });
 
   test('내 루틴 순서 바꾸기: 직접 정렬로 바뀌고 유지, 새 루틴은 맨 위', () async {

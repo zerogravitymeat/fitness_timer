@@ -22,14 +22,31 @@ class RoutineStore extends ChangeNotifier {
 
   Future<void> load() async {
     _d = await _repo.load();
+    // 예전에는 프리셋도 즐겨찾기할 수 있었다. 이제는 내 루틴만 (docs/02 8장)
+    _d.favorites.removeAll(Presets.all.map((p) => p.id));
     notifyListeners();
   }
 
   RoutineSort get sort => _d.sort;
 
-  /// 정렬된 내 루틴
-  List<Routine> get myRoutines =>
-      _sorted(_d.routines, (r) => r.id, (r) => r.name, _d.sort, _d.customOrder);
+  /// 정렬된 내 루틴. 즐겨찾기한 루틴은 정렬과 상관없이 맨 위 (docs/03 3장)
+  List<Routine> get myRoutines {
+    final sorted = _sorted(
+      _d.routines,
+      (r) => r.id,
+      (r) => r.name,
+      _d.sort,
+      _d.customOrder,
+    );
+    return [
+      ...sorted.where((r) => _d.favorites.contains(r.id)),
+      ...sorted.where((r) => !_d.favorites.contains(r.id)),
+    ];
+  }
+
+  /// [myRoutines] 맨 위에 모인 즐겨찾기 루틴 수
+  int get favoriteCount =>
+      _d.routines.where((r) => _d.favorites.contains(r.id)).length;
 
   /// 내 루틴·코스 공통 정렬 (docs/02 8장)
   List<T> _sorted<T>(
@@ -76,32 +93,19 @@ class RoutineStore extends ChangeNotifier {
     _presets = [for (final p in Presets.all) p.copyWith(name: nameOf(p))];
   }
 
-  /// 프리셋 (사용자가 정한 순서, 없으면 기본 순서)
-  List<Routine> get presets {
-    final pos = {for (final (i, id) in _d.presetOrder.indexed) id: i};
-    final list = [..._presets];
-    final base = {for (final (i, r) in Presets.all.indexed) r.id: i};
-    list.sort(
-      (a, b) => (pos[a.id] ?? 1000 + base[a.id]!).compareTo(
-        pos[b.id] ?? 1000 + base[b.id]!,
-      ),
-    );
-    return list;
-  }
-
-  /// 프리셋 순서 바꾸기. [newIndex]는 옮긴 뒤 놓일 위치 (이미 보정된 값).
-  Future<void> movePreset(int oldIndex, int newIndex) async {
-    final ids = presets.map((r) => r.id).toList();
-    ids.insert(newIndex, ids.removeAt(oldIndex));
-    _d.presetOrder
-      ..clear()
-      ..addAll(ids);
-    await _commit();
-  }
+  /// 프리셋. 순서는 바꿀 수 없다 (docs/03 3장)
+  List<Routine> get presets => _presets;
 
   /// 내 루틴 순서 바꾸기. 정렬은 "직접 정렬"로 바뀐다.
+  /// [newIndex]는 옮긴 뒤 놓일 위치 (이미 보정된 값).
+  /// 즐겨찾기 루틴은 즐겨찾기끼리, 나머지는 나머지끼리만 옮긴다.
   Future<void> moveMine(int oldIndex, int newIndex) async {
     final ids = myRoutines.map((r) => r.id).toList();
+    final favs = favoriteCount;
+    newIndex = oldIndex < favs
+        ? newIndex.clamp(0, favs - 1)
+        : newIndex.clamp(favs, ids.length - 1);
+    if (newIndex == oldIndex) return;
     ids.insert(newIndex, ids.removeAt(oldIndex));
     _d.customOrder
       ..clear()
@@ -113,15 +117,6 @@ class RoutineStore extends ChangeNotifier {
   List<Routine> get all => [..._presets, ..._d.routines];
 
   Routine? byId(String id) => all.where((r) => r.id == id).firstOrNull;
-
-  /// 즐겨찾기 (프리셋 + 내 루틴), 최근 사용순
-  List<Routine> get favorites {
-    final list = all.where((r) => _d.favorites.contains(r.id)).toList();
-    list.sort(
-      (a, b) => (_d.lastUsed[b.id] ?? 0).compareTo(_d.lastUsed[a.id] ?? 0),
-    );
-    return list;
-  }
 
   /// 마지막으로 시작한 루틴 (지워진 루틴은 제외)
   Routine? get recent {
@@ -177,7 +172,9 @@ class RoutineStore extends ChangeNotifier {
     await _commit();
   }
 
+  /// 내 루틴만 즐겨찾기할 수 있다
   Future<void> toggleFavorite(String id) async {
+    if (!_d.routines.any((r) => r.id == id)) return;
     if (!_d.favorites.remove(id)) _d.favorites.add(id);
     await _commit();
   }
@@ -189,6 +186,14 @@ class RoutineStore extends ChangeNotifier {
 
   Future<void> setSort(RoutineSort s) async {
     _d.sort = s;
+    await _commit();
+  }
+
+  HomeTab get homeTab => _d.homeTab;
+
+  Future<void> setHomeTab(HomeTab t) async {
+    if (_d.homeTab == t) return;
+    _d.homeTab = t;
     await _commit();
   }
 

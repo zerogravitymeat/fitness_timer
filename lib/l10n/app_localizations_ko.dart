@@ -49,9 +49,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get close => '닫기';
 
   @override
-  String get add => '추가';
-
-  @override
   String get name => '이름';
 
   @override
@@ -82,9 +79,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myRoutines => '내 루틴';
-
-  @override
-  String get presets => '프리셋';
 
   @override
   String get courses => '코스';
@@ -326,9 +320,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sortCreated => '만든 순';
 
   @override
-  String get recent => '최근';
-
-  @override
   String get favorites => '즐겨찾기';
 
   @override
@@ -336,13 +327,70 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get courseEmptyHint =>
-      '아래 \"추가\" 버튼으로 내 루틴을 골라 이어서 하는 코스를 만들어 보세요. 루틴 사이 휴식도 정할 수 있어요.';
+      '내 루틴을 골라 이어서 하는 코스를 만들어 보세요. 루틴 사이 휴식도 정할 수 있어요.';
 
   @override
   String get routinesEmpty => '자주 하는 운동을 루틴으로 저장해 보세요';
 
   @override
   String get createRoutine => '루틴 만들기';
+
+  @override
+  String get recentWorkout => '최근 운동';
+
+  @override
+  String get myWorkouts => '내 운동';
+
+  @override
+  String get basicWorkouts => '기본 운동';
+
+  @override
+  String get alwaysFree => '항상 무료';
+
+  @override
+  String get basicWorkoutsFirstTitle => '기본 운동으로 바로 시작해 보세요';
+
+  @override
+  String get basicWorkoutsFirstBody => '결제 없이 언제든 쓸 수 있어요';
+
+  @override
+  String tabRoutines(int count) {
+    return '루틴 $count';
+  }
+
+  @override
+  String tabCourses(int count) {
+    return '코스 $count';
+  }
+
+  @override
+  String get sortTooltip => '정렬';
+
+  @override
+  String get createCourse => '코스 만들기';
+
+  @override
+  String get lockedMineBanner => '정식 버전에서 다시 쓸 수 있어요';
+
+  @override
+  String get lockedMineAction => '보기';
+
+  @override
+  String freeBadge(int count) {
+    return '무료 $count회';
+  }
+
+  @override
+  String get createNew => '새로 만들기';
+
+  @override
+  String get copyPreset => '기본 운동 복사해서 만들기';
+
+  @override
+  String get copyPresetSubtitle => '타바타·HIIT 등을 내 루틴으로 가져와 고쳐 써요';
+
+  @override
+  String get pickPresetToCopy => '복사할 기본 운동을 고르세요';
 
   @override
   String startNamed(String name) {
@@ -499,7 +547,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get trialUsedUp => '무료 체험을 모두 사용했어요';
 
   @override
-  String get trialUsedUpBody => '프리셋 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.';
+  String get trialUsedUpBody => '기본 운동 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.';
 
   @override
   String get editCourse => '코스 편집';
@@ -586,7 +634,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get presetsFreeNote =>
-      '프리셋 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.';
+      '기본 운동 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.';
 
   @override
   String get ttsPreviewText => '휴식 10초 남았습니다';
@@ -669,7 +717,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fullVersionActive => '정식 버전 사용 중';
 
   @override
-  String get trialEnded => '체험 종료 (프리셋은 계속 무료)';
+  String get trialEnded => '체험 종료 (기본 운동은 계속 무료)';
 
   @override
   String get buyFullVersion => '정식 버전 구매';

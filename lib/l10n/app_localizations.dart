@@ -176,12 +176,6 @@ abstract class AppLocalizations {
   /// **'닫기'**
   String get close;
 
-  /// No description provided for @add.
-  ///
-  /// In ko, this message translates to:
-  /// **'추가'**
-  String get add;
-
   /// No description provided for @name.
   ///
   /// In ko, this message translates to:
@@ -241,12 +235,6 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'내 루틴'**
   String get myRoutines;
-
-  /// No description provided for @presets.
-  ///
-  /// In ko, this message translates to:
-  /// **'프리셋'**
-  String get presets;
 
   /// No description provided for @courses.
   ///
@@ -638,12 +626,6 @@ abstract class AppLocalizations {
   /// **'만든 순'**
   String get sortCreated;
 
-  /// No description provided for @recent.
-  ///
-  /// In ko, this message translates to:
-  /// **'최근'**
-  String get recent;
-
   /// No description provided for @favorites.
   ///
   /// In ko, this message translates to:
@@ -659,7 +641,7 @@ abstract class AppLocalizations {
   /// No description provided for @courseEmptyHint.
   ///
   /// In ko, this message translates to:
-  /// **'아래 \"추가\" 버튼으로 내 루틴을 골라 이어서 하는 코스를 만들어 보세요. 루틴 사이 휴식도 정할 수 있어요.'**
+  /// **'내 루틴을 골라 이어서 하는 코스를 만들어 보세요. 루틴 사이 휴식도 정할 수 있어요.'**
   String get courseEmptyHint;
 
   /// No description provided for @routinesEmpty.
@@ -673,6 +655,108 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'루틴 만들기'**
   String get createRoutine;
+
+  /// No description provided for @recentWorkout.
+  ///
+  /// In ko, this message translates to:
+  /// **'최근 운동'**
+  String get recentWorkout;
+
+  /// No description provided for @myWorkouts.
+  ///
+  /// In ko, this message translates to:
+  /// **'내 운동'**
+  String get myWorkouts;
+
+  /// No description provided for @basicWorkouts.
+  ///
+  /// In ko, this message translates to:
+  /// **'기본 운동'**
+  String get basicWorkouts;
+
+  /// No description provided for @alwaysFree.
+  ///
+  /// In ko, this message translates to:
+  /// **'항상 무료'**
+  String get alwaysFree;
+
+  /// No description provided for @basicWorkoutsFirstTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'기본 운동으로 바로 시작해 보세요'**
+  String get basicWorkoutsFirstTitle;
+
+  /// No description provided for @basicWorkoutsFirstBody.
+  ///
+  /// In ko, this message translates to:
+  /// **'결제 없이 언제든 쓸 수 있어요'**
+  String get basicWorkoutsFirstBody;
+
+  /// No description provided for @tabRoutines.
+  ///
+  /// In ko, this message translates to:
+  /// **'루틴 {count}'**
+  String tabRoutines(int count);
+
+  /// No description provided for @tabCourses.
+  ///
+  /// In ko, this message translates to:
+  /// **'코스 {count}'**
+  String tabCourses(int count);
+
+  /// No description provided for @sortTooltip.
+  ///
+  /// In ko, this message translates to:
+  /// **'정렬'**
+  String get sortTooltip;
+
+  /// No description provided for @createCourse.
+  ///
+  /// In ko, this message translates to:
+  /// **'코스 만들기'**
+  String get createCourse;
+
+  /// No description provided for @lockedMineBanner.
+  ///
+  /// In ko, this message translates to:
+  /// **'정식 버전에서 다시 쓸 수 있어요'**
+  String get lockedMineBanner;
+
+  /// No description provided for @lockedMineAction.
+  ///
+  /// In ko, this message translates to:
+  /// **'보기'**
+  String get lockedMineAction;
+
+  /// No description provided for @freeBadge.
+  ///
+  /// In ko, this message translates to:
+  /// **'무료 {count}회'**
+  String freeBadge(int count);
+
+  /// No description provided for @createNew.
+  ///
+  /// In ko, this message translates to:
+  /// **'새로 만들기'**
+  String get createNew;
+
+  /// No description provided for @copyPreset.
+  ///
+  /// In ko, this message translates to:
+  /// **'기본 운동 복사해서 만들기'**
+  String get copyPreset;
+
+  /// No description provided for @copyPresetSubtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'타바타·HIIT 등을 내 루틴으로 가져와 고쳐 써요'**
+  String get copyPresetSubtitle;
+
+  /// No description provided for @pickPresetToCopy.
+  ///
+  /// In ko, this message translates to:
+  /// **'복사할 기본 운동을 고르세요'**
+  String get pickPresetToCopy;
 
   /// No description provided for @startNamed.
   ///
@@ -953,7 +1037,7 @@ abstract class AppLocalizations {
   /// No description provided for @trialUsedUpBody.
   ///
   /// In ko, this message translates to:
-  /// **'프리셋 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.'**
+  /// **'기본 운동 4개는 계속 무료예요.\n내 루틴은 정식 버전에서 쓸 수 있어요.'**
   String get trialUsedUpBody;
 
   /// No description provided for @editCourse.
@@ -1109,7 +1193,7 @@ abstract class AppLocalizations {
   /// No description provided for @presetsFreeNote.
   ///
   /// In ko, this message translates to:
-  /// **'프리셋 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.'**
+  /// **'기본 운동 4개(타바타, HIIT, 플랭크, 근력 세트)는\n구매하지 않아도 계속 무료로 쓸 수 있어요.'**
   String get presetsFreeNote;
 
   /// No description provided for @ttsPreviewText.
@@ -1271,7 +1355,7 @@ abstract class AppLocalizations {
   /// No description provided for @trialEnded.
   ///
   /// In ko, this message translates to:
-  /// **'체험 종료 (프리셋은 계속 무료)'**
+  /// **'체험 종료 (기본 운동은 계속 무료)'**
   String get trialEnded;
 
   /// No description provided for @buyFullVersion.

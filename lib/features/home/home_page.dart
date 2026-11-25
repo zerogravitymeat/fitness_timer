@@ -243,7 +243,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (res.start && mounted) await _startCourse(res.course);
   }
 
-  /// 맨 아래 "추가": 새 루틴 / 새 코스 고르기
+  /// 맨 아래 "새로 만들기": 새 루틴 / 기본 운동 복사 / 새 코스 (docs/03 3장)
   void _addMenu(bool hasMine) {
     showModalBottomSheet<void>(
       context: context,
@@ -272,6 +272,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               ),
               ListTile(
+                leading: const Icon(Icons.copy_outlined),
+                title: Text(context.l10n.copyPreset),
+                subtitle: Text(context.l10n.copyPresetSubtitle),
+                onTap: () => close(_pickPresetToCopy),
+              ),
+              ListTile(
                 leading: const Icon(Icons.playlist_add),
                 title: Text(context.l10n.newCourse),
                 // 코스는 내 루틴을 조합해서 만든다. 내 루틴이 없으면 만들 수 없다.
@@ -288,6 +294,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       },
     );
+  }
+
+  /// 복사할 기본 운동 고르기 → 사본으로 편집
+  Future<void> _pickPresetToCopy() async {
+    // 체험이 끝났으면 고르기 전에 결제 화면부터
+    if (!await _requireCustom() || !mounted) return;
+    final picked = await showModalBottomSheet<Routine>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(
+                context.l10n.pickPresetToCopy,
+                style: Theme.of(c).textTheme.titleMedium,
+              ),
+            ),
+            const Divider(height: 1),
+            for (final p in _store.presets)
+              ListTile(
+                leading: _PresetIcon(preset: p, size: 36),
+                title: Text(p.name),
+                subtitle: Text(RoutineSummary.of(context.l10n, p)),
+                onTap: () => Navigator.pop(c, p),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    await _edit(_store.copyOf(picked, context.l10n.copyName), isNew: true);
   }
 
   void _newCourse() => _editCourse(
@@ -402,13 +440,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 title: Text(context.l10n.start),
                 onTap: () => close(() => _start(r)),
               ),
-              ListTile(
-                leading: Icon(fav ? Icons.star : Icons.star_border),
-                title: Text(
-                  fav ? context.l10n.favoriteRemove : context.l10n.favoriteAdd,
+              // 프리셋은 즐겨찾기하지 않는다 (docs/03 3장 "루틴 메뉴")
+              if (!r.isPreset)
+                ListTile(
+                  leading: Icon(fav ? Icons.star : Icons.star_border),
+                  title: Text(
+                    fav
+                        ? context.l10n.favoriteRemove
+                        : context.l10n.favoriteAdd,
+                  ),
+                  onTap: () => close(() => _store.toggleFavorite(r.id)),
                 ),
-                onTap: () => close(() => _store.toggleFavorite(r.id)),
-              ),
               if (!r.isPreset)
                 ListTile(
                   leading: const Icon(Icons.edit_outlined),
@@ -463,11 +505,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
-  /// 순서 편집: 손잡이(≡)나 항목을 끌어서 위아래로 옮긴다
+  /// 순서 편집: 지금 보고 있는 탭(루틴 또는 코스)만 옮긴다 (docs/03 3장).
+  /// 즐겨찾기 루틴은 즐겨찾기끼리만 옮긴다 (RoutineStore.moveMine).
   Widget _buildReorder(BuildContext context) {
-    final presets = _store.presets;
-    final mine = _store.myRoutines;
-    final courses = _store.courses;
+    final courses = _store.homeTab == HomeTab.courses;
     Widget list<T>(
       List<T> items,
       String Function(T) id,
@@ -498,18 +539,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         child: tile(items[i], i),
       ),
     );
-    Widget routines(List<Routine> items, void Function(int, int) move) =>
-        list<Routine>(
-          items,
-          (r) => r.id,
-          (r, i) => _ReorderTile(
-            leading: _ModeBar(routine: r),
-            title: r.name,
-            subtitle: RoutineSummary.of(context.l10n, r),
-            index: i,
-          ),
-          move,
-        );
 
     return Scaffold(
       appBar: AppBar(
@@ -535,10 +564,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          if (courses.isNotEmpty) ...[
-            _Section(context.l10n.courses),
+          _Section(courses ? context.l10n.courses : context.l10n.myRoutines),
+          if (courses)
             list<Course>(
-              courses,
+              _store.courses,
               (c) => c.id,
               (c, i) => _ReorderTile(
                 leading: const _CourseMark(),
@@ -550,14 +579,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 index: i,
               ),
               _store.moveCourse,
+            )
+          else
+            list<Routine>(
+              _store.myRoutines,
+              (r) => r.id,
+              (r, i) => _ReorderTile(
+                leading: _ModeBar(routine: r),
+                title: r.name,
+                favorite: _store.isFavorite(r.id),
+                subtitle: RoutineSummary.of(context.l10n, r),
+                index: i,
+              ),
+              _store.moveMine,
             ),
-          ],
-          if (mine.isNotEmpty) ...[
-            _Section(context.l10n.myRoutines),
-            routines(mine, _store.moveMine),
-          ],
-          _Section(context.l10n.presets),
-          routines(presets, _store.movePreset),
         ],
       ),
     );
@@ -566,49 +601,76 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Widget _buildNormal(BuildContext context) {
     final ent = _ent.value;
     final recent = _store.recent;
-    final favorites = _store.favorites;
     final mine = _store.myRoutines;
     final courses = _store.courses;
-    final text = Theme.of(context).textTheme;
 
-    // 섹션 제목 + 정렬 선택 (내 루틴, 코스)
-    Widget sortHeader(
-      String title,
-      RoutineSort value,
-      Future<void> Function(RoutineSort) onChanged,
-    ) => Row(
-      children: [
-        Expanded(child: _Section(title)),
-        DropdownButton<RoutineSort>(
-          value: value,
-          underline: const SizedBox.shrink(),
-          onChanged: (s) => s == null ? null : onChanged(s),
-          items: [
-            DropdownMenuItem(
-              value: RoutineSort.custom,
-              child: Text(context.l10n.sortCustom),
+    // 처음 사용: 내 루틴·코스 모두 없음. 체험 종료: 실행할 수 있는 기본 운동을 위로
+    // (docs/03 3장 "영역 순서")
+    final firstRun = mine.isEmpty && courses.isEmpty;
+    final basicFirst = firstRun || ent.trialEnded;
+
+    // 체험 종료 후에는 실행할 수 있는 루틴(프리셋)일 때만
+    final recentSection = recent != null && ent.canStart(recent)
+        ? [
+            _Section(context.l10n.recentWorkout),
+            _RecentCard(
+              routine: recent,
+              onStart: () => _start(recent),
+              onMenu: () => _menu(recent),
             ),
-            DropdownMenuItem(
-              value: RoutineSort.recent,
-              child: Text(context.l10n.sortRecent),
-            ),
-            DropdownMenuItem(
-              value: RoutineSort.name,
-              child: Text(context.l10n.sortName),
-            ),
-            DropdownMenuItem(
-              value: RoutineSort.created,
-              child: Text(context.l10n.sortCreated),
-            ),
-          ],
-        ),
-      ],
-    );
+          ]
+        : const <Widget>[];
+
+    final basicSection = [
+      if (firstRun)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 20, 4, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.l10n.basicWorkoutsFirstTitle,
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const _FreePill(),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      context.l10n.basicWorkoutsFirstBody,
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        )
+      else
+        _Section(context.l10n.basicWorkouts, badge: const _FreePill()),
+      _PresetGrid(presets: _store.presets, onStart: _start, onMenu: _menu),
+    ];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Fitness Timer'),
         actions: [
+          // 체험 중 "무료 N회", 체험 종료 후 "정식 버전". 누르면 S6 (docs/03 3장)
+          if (!ent.isFull)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: _PlanBadge(
+                label: ent.trialEnded
+                    ? context.l10n.fullVersion
+                    : context.l10n.freeBadge(ent.freeRemaining),
+                strong: ent.trialEnded,
+                onPressed: () => PaywallPage.open(context),
+              ),
+            ),
           IconButton(
             tooltip: context.l10n.settings,
             icon: const Icon(Icons.settings_outlined),
@@ -617,7 +679,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
         ],
       ),
-      // 맨 아래 가로 유리 버튼: 루틴이나 코스 추가 (docs/03 3장).
+      // 맨 아래 가로 유리 버튼: 새로 만들기 (docs/03 3장).
       // 목록이 버튼 뒤로 지나가도록 본문을 아래까지 늘린다.
       extendBody: true,
       // 버튼 뒤로는 목록이 서서히 사라지게 (시스템 내비게이션 바 뒤까지 덮는다)
@@ -651,116 +713,83 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         // 이 context는 Scaffold 바깥이라 paddingOf에는 시스템 내비게이션 바 높이만 들어 있다.
         padding: EdgeInsets.fromLTRB(
           16,
-          8,
+          0,
           16,
           _GlassAddButton.areaHeight +
               16 +
               MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          // 체험 중에만 "무료 운동 N회 남음" (docs/03 3장)
-          if (ent.inTrial)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ActionChip(
-                avatar: const Icon(Icons.card_giftcard, size: 18),
-                label: Text(context.l10n.freeRemaining(ent.freeRemaining)),
-                onPressed: () => PaywallPage.open(context),
-              ),
+          ...recentSection,
+          if (basicFirst) ...basicSection,
+          ..._myWorkouts(context, mine, courses),
+          if (!basicFirst) ...basicSection,
+        ],
+      ),
+    );
+  }
+
+  /// "내 운동": [루틴 | 코스] 전환 + 고른 쪽 목록 (docs/03 3장 "내 운동")
+  List<Widget> _myWorkouts(
+    BuildContext context,
+    List<Routine> mine,
+    List<Course> courses,
+  ) {
+    final ent = _ent.value;
+
+    // 아무것도 없으면 전환 버튼 없이 루틴 만들기 안내만
+    if (mine.isEmpty && courses.isEmpty) {
+      return [
+        _Section(context.l10n.myWorkouts),
+        _EmptyCard(
+          message: context.l10n.routinesEmpty,
+          action: context.l10n.createRoutine,
+          onAction: _newRoutine,
+        ),
+      ];
+    }
+
+    final tab = _store.homeTab;
+    final showCourses = tab == HomeTab.courses;
+    return [
+      _Section(
+        context.l10n.myWorkouts,
+        locked: ent.trialEnded,
+        trailing: _SortButton(
+          value: showCourses ? _store.courseSort : _store.sort,
+          onChanged: showCourses ? _store.setCourseSort : _store.setSort,
+        ),
+      ),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<HomeTab>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(
+              value: HomeTab.routines,
+              label: Text(context.l10n.tabRoutines(mine.length)),
             ),
-          if (recent != null) ...[
-            _Section(context.l10n.recent),
-            _RecentCard(
-              routine: recent,
-              locked: !ent.canStart(recent),
-              onStart: () => _start(recent),
-              onMenu: () => _menu(recent),
-            ),
-          ],
-          if (favorites.isNotEmpty) ...[
-            _Section(context.l10n.favorites),
-            SizedBox(
-              height: 112,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: favorites.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (_, i) {
-                  final r = favorites[i];
-                  return _FavoriteCard(
-                    routine: r,
-                    locked: !ent.canStart(r),
-                    onStart: () => _start(r),
-                    onMenu: () => _menu(r),
-                  );
-                },
-              ),
-            ),
-          ],
-          // 순서: 코스 → 내 루틴 → 프리셋 (docs/03 3장)
-          if (courses.isNotEmpty) ...[
-            sortHeader(
-              context.l10n.courses,
-              _store.courseSort,
-              _store.setCourseSort,
-            ),
-            for (final c in courses)
-              _CourseTile(
-                course: c,
-                workout: _store.workoutOf(c),
-                locked: !ent.canUseCustom,
-                onStart: () => _startCourse(c),
-                onMenu: () => _courseMenu(c),
-                onLongPress: _enterReorder,
-              ),
-          ],
-          // 코스가 없으면 안내 (docs/03 3장)
-          if (courses.isEmpty) ...[
-            _Section(context.l10n.courses),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-              child: Text(
-                mine.isEmpty
-                    ? context.l10n.courseEmptyNoRoutines
-                    : context.l10n.courseEmptyHint,
-                style: text.bodyMedium,
-              ),
+            ButtonSegment(
+              value: HomeTab.courses,
+              label: Text(context.l10n.tabCourses(courses.length)),
             ),
           ],
-          sortHeader(context.l10n.myRoutines, _store.sort, _store.setSort),
-          if (mine.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(
-                children: [
-                  Text(context.l10n.routinesEmpty, style: text.bodyLarge),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: Text(context.l10n.createRoutine),
-                    onPressed: () => _edit(
-                      EditRules.blank(
-                        _store.newId(),
-                        context.l10n.defaultRoutineName,
-                      ),
-                      isNew: true,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            for (final r in mine)
-              _RoutineTile(
-                routine: r,
-                locked: !ent.canStart(r),
-                favorite: _store.isFavorite(r.id),
-                onStart: () => _start(r),
-                onMenu: () => _menu(r),
-                onLongPress: _enterReorder,
-              ),
-          _Section(context.l10n.presets),
-          for (final r in _store.presets)
+          selected: {tab},
+          onSelectionChanged: (s) => _store.setHomeTab(s.first),
+        ),
+      ),
+      const SizedBox(height: 8),
+      if (ent.trialEnded)
+        _LockedBanner(onPressed: () => PaywallPage.open(context)),
+      if (!showCourses) ...[
+        if (mine.isEmpty)
+          _EmptyCard(
+            message: context.l10n.routinesEmpty,
+            action: context.l10n.createRoutine,
+            onAction: _newRoutine,
+          )
+        else
+          for (final r in mine)
             _RoutineTile(
               routine: r,
               locked: !ent.canStart(r),
@@ -769,10 +798,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               onMenu: () => _menu(r),
               onLongPress: _enterReorder,
             ),
-        ],
-      ),
-    );
+      ] else ...[
+        if (courses.isEmpty)
+          mine.isEmpty
+              ? _EmptyCard(message: context.l10n.courseEmptyNoRoutines)
+              : _EmptyCard(
+                  message: context.l10n.courseEmptyHint,
+                  action: context.l10n.createCourse,
+                  onAction: _newCourse,
+                )
+        else
+          for (final c in courses)
+            _CourseTile(
+              course: c,
+              workout: _store.workoutOf(c),
+              locked: !ent.canUseCustom,
+              onStart: () => _startCourse(c),
+              onMenu: () => _courseMenu(c),
+              onLongPress: _enterReorder,
+            ),
+      ],
+    ];
   }
+
+  void _newRoutine() => _edit(
+    EditRules.blank(_store.newId(), context.l10n.defaultRoutineName),
+    isNew: true,
+  );
 }
 
 /// 순서 편집 모드의 항목: 탭·시작 버튼 없이 손잡이만
@@ -782,17 +834,24 @@ class _ReorderTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.index,
+    this.favorite = false,
   });
   final Widget leading;
   final String title;
   final String subtitle;
   final int index;
+  final bool favorite;
 
   @override
   Widget build(BuildContext context) => Card(
     child: ListTile(
       leading: leading,
-      title: Text(title, overflow: TextOverflow.ellipsis),
+      title: Row(
+        children: [
+          Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+          if (favorite) const _FavoriteStar(),
+        ],
+      ),
       subtitle: Text(subtitle),
       trailing: ReorderableDragStartListener(
         index: index,
@@ -808,13 +867,240 @@ class _ReorderTile extends StatelessWidget {
   );
 }
 
+/// 홈 영역 제목 (docs/03 3장). 영역 사이를 넓게 띄워 묶음이 보이게 한다.
 class _Section extends StatelessWidget {
-  const _Section(this.title);
+  const _Section(this.title, {this.badge, this.trailing, this.locked = false});
   final String title;
+  final Widget? badge;
+  final Widget? trailing;
+
+  /// 체험 종료 후 "내 운동" 제목 옆 자물쇠
+  final bool locked;
+
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-    child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+    padding: EdgeInsets.fromLTRB(4, 28, trailing == null ? 4 : 0, 10),
+    child: SizedBox(
+      // 오른쪽 버튼이 있든 없든 제목 높이를 같게
+      height: 36,
+      child: Row(
+        children: [
+          // 제목·자물쇠·배지는 왼쪽에 모으고, 오른쪽 버튼은 맨 끝에
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (locked)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 18,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                if (badge != null) ...[const SizedBox(width: 8), badge!],
+              ],
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    ),
+  );
+}
+
+/// "항상 무료" 표시 (기본 운동 제목 옆)
+class _FreePill extends StatelessWidget {
+  const _FreePill();
+
+  @override
+  Widget build(BuildContext context) {
+    final mint = PhaseColors.rest.c1;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: mint.withValues(alpha: 0.14),
+        border: Border.all(color: mint.withValues(alpha: 0.40)),
+      ),
+      child: Text(
+        context.l10n.alwaysFree,
+        style: TextStyle(
+          color: Color.lerp(mint, Colors.white, 0.25),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// 앱바의 "무료 N회" / "정식 버전" 배지. 누르면 결제 화면
+class _PlanBadge extends StatelessWidget {
+  const _PlanBadge({
+    required this.label,
+    required this.onPressed,
+    this.strong = false,
+  });
+  final String label;
+  final VoidCallback onPressed;
+
+  /// 체험 종료 후: 채운 버튼으로 더 눈에 띄게
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = strong
+        ? FilledButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            foregroundColor: Colors.white,
+          )
+        : FilledButton.styleFrom(
+            backgroundColor: AppColors.accent.withValues(alpha: 0.16),
+            foregroundColor: const Color(0xFFD3D8FF),
+            side: BorderSide(color: AppColors.accent.withValues(alpha: 0.45)),
+          );
+    return FilledButton.icon(
+      style: style.copyWith(
+        visualDensity: VisualDensity.compact,
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 12),
+        ),
+        textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ),
+      icon: Icon(strong ? Icons.star_rounded : Icons.card_giftcard, size: 16),
+      label: Text(label),
+      onPressed: onPressed,
+    );
+  }
+}
+
+/// 정렬 고르기 (⇅). 지금 보고 있는 탭의 정렬을 바꾼다.
+class _SortButton extends StatelessWidget {
+  const _SortButton({required this.value, required this.onChanged});
+  final RoutineSort value;
+  final Future<void> Function(RoutineSort) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final labels = {
+      RoutineSort.custom: l.sortCustom,
+      RoutineSort.recent: l.sortRecent,
+      RoutineSort.name: l.sortName,
+      RoutineSort.created: l.sortCreated,
+    };
+    return PopupMenuButton<RoutineSort>(
+      tooltip: '${l.sortTooltip}: ${labels[value]}',
+      icon: const Icon(Icons.swap_vert_rounded),
+      initialValue: value,
+      onSelected: onChanged,
+      itemBuilder: (_) => [
+        for (final e in labels.entries)
+          CheckedPopupMenuItem(
+            value: e.key,
+            checked: e.key == value,
+            child: Text(e.value),
+          ),
+      ],
+    );
+  }
+}
+
+/// 비어 있을 때 안내 (+ 만들기 버튼)
+class _EmptyCard extends StatelessWidget {
+  const _EmptyCard({required this.message, this.action, this.onAction});
+  final String message;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(AppRadius.panel),
+      color: Colors.white.withValues(alpha: GlassLevel.subtle.fill),
+      border: Border.all(
+        color: Colors.white.withValues(alpha: GlassLevel.subtle.border),
+      ),
+    ),
+    child: Column(
+      children: [
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(color: AppColors.textSecondary, height: 1.5),
+        ),
+        if (action != null) ...[
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            icon: const Icon(Icons.add),
+            label: Text(action!),
+            onPressed: onAction,
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+/// 체험 종료 후 "내 운동" 맨 위 안내 (docs/03 3장)
+class _LockedBanner extends StatelessWidget {
+  const _LockedBanner({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 5),
+    padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(AppRadius.small),
+      color: AppColors.accent.withValues(alpha: 0.14),
+      border: Border.all(color: AppColors.accent.withValues(alpha: 0.30)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            context.l10n.lockedMineBanner,
+            style: const TextStyle(color: Color(0xFFE3E6FF), height: 1.4),
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: onPressed,
+          child: Text(context.l10n.lockedMineAction),
+        ),
+      ],
+    ),
+  );
+}
+
+class _FavoriteStar extends StatelessWidget {
+  const _FavoriteStar();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 6),
+    child: Icon(
+      Icons.star_rounded,
+      size: 16,
+      color: PhaseColors.prep.c1,
+      semanticLabel: context.l10n.favorites,
+    ),
   );
 }
 
@@ -854,15 +1140,14 @@ class _StartButton extends StatelessWidget {
   );
 }
 
+/// 최근 운동: 가장 큰 카드. 실행할 수 있을 때만 보여주므로 잠금 표시는 없다.
 class _RecentCard extends StatelessWidget {
   const _RecentCard({
     required this.routine,
-    this.locked = false,
     required this.onStart,
     required this.onMenu,
   });
   final Routine routine;
-  final bool locked;
   final VoidCallback onStart;
   final VoidCallback onMenu;
   @override
@@ -875,10 +1160,7 @@ class _RecentCard extends StatelessWidget {
           gradient: RadialGradient(
             center: const Alignment(-1, -1),
             radius: 1.6,
-            colors: [
-              c.c1.withValues(alpha: locked ? 0.15 : 0.55),
-              c.c1.withValues(alpha: 0),
-            ],
+            colors: [c.c1.withValues(alpha: 0.55), c.c1.withValues(alpha: 0)],
           ),
         ),
         child: InkWell(
@@ -905,12 +1187,7 @@ class _RecentCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                _StartButton(
-                  name: routine.name,
-                  onStart: onStart,
-                  size: 60,
-                  locked: locked,
-                ),
+                _StartButton(name: routine.name, onStart: onStart, size: 60),
               ],
             ),
           ),
@@ -918,58 +1195,6 @@ class _RecentCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _FavoriteCard extends StatelessWidget {
-  const _FavoriteCard({
-    required this.routine,
-    this.locked = false,
-    required this.onStart,
-    required this.onMenu,
-  });
-  final Routine routine;
-  final bool locked;
-  final VoidCallback onStart;
-  final VoidCallback onMenu;
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 160,
-    child: Card(
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onMenu,
-        onLongPress: onMenu,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                routine.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(RoutineSummary.estimate(context.l10n, routine)),
-                  ),
-                  _StartButton(
-                    name: routine.name,
-                    onStart: onStart,
-                    locked: locked,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 class _RoutineTile extends StatelessWidget {
@@ -1006,15 +1231,13 @@ class _RoutineTile extends StatelessWidget {
                   : null,
             ),
           ),
-          if (favorite)
-            const Padding(
-              padding: EdgeInsets.only(left: 6),
-              child: Icon(Icons.star, size: 16),
-            ),
+          if (favorite) const _FavoriteStar(),
         ],
       ),
+      // 예상 시간("about 4 min")은 줄바꿈 때 쪼개지지 않게 한 덩어리로
       subtitle: Text(
-        '${RoutineSummary.of(context.l10n, routine)} · ${RoutineSummary.estimate(context.l10n, routine)}',
+        '${RoutineSummary.of(context.l10n, routine)} · '
+        '${RoutineSummary.estimate(context.l10n, routine).replaceAll(' ', ' ')}',
       ),
       trailing: _StartButton(
         name: routine.name,
@@ -1023,6 +1246,143 @@ class _RoutineTile extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// 기본 운동마다 아이콘과 색 (docs/03 3장 "기본 운동 카드")
+(IconData, PhaseColors) _presetStyle(Routine p) => switch (p.id) {
+  'preset_tabata' => (Icons.bolt_rounded, PhaseColors.work),
+  'preset_hiit' => (Icons.local_fire_department_rounded, PhaseColors.prep),
+  'preset_plank' => (Icons.timer_outlined, PhaseColors.rest),
+  _ => (Icons.fitness_center_rounded, PhaseColors.setRest),
+};
+
+class _PresetIcon extends StatelessWidget {
+  const _PresetIcon({required this.preset, this.size = 40});
+  final Routine preset;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, c) = _presetStyle(preset);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(size * 0.33),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [c.c1, c.c2],
+        ),
+      ),
+      child: Icon(icon, color: Colors.white, size: size * 0.5),
+    );
+  }
+}
+
+/// 기본 운동 2×2 격자. 순서는 바꿀 수 없다.
+class _PresetGrid extends StatelessWidget {
+  const _PresetGrid({
+    required this.presets,
+    required this.onStart,
+    required this.onMenu,
+  });
+  final List<Routine> presets;
+  final void Function(Routine) onStart;
+  final void Function(Routine) onMenu;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget card(Routine p) => _PresetCard(
+      preset: p,
+      onStart: () => onStart(p),
+      onMenu: () => onMenu(p),
+    );
+    return Column(
+      children: [
+        for (var i = 0; i < presets.length; i += 2)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            // 한 줄의 두 카드 높이를 맞춘다 (글자 크기가 커져도)
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: card(presets[i])),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: i + 1 < presets.length
+                        ? card(presets[i + 1])
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PresetCard extends StatelessWidget {
+  const _PresetCard({
+    required this.preset,
+    required this.onStart,
+    required this.onMenu,
+  });
+  final Routine preset;
+  final VoidCallback onStart;
+  final VoidCallback onMenu;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      // 내 루틴 목록보다 한 단계 밝은 유리로 구분한다
+      color: Colors.white.withValues(alpha: GlassLevel.regular.fill - 0.02),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onMenu,
+        onLongPress: onMenu,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 8, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _PresetIcon(preset: preset, size: 36),
+              const SizedBox(height: 10),
+              Text(
+                preset.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                RoutineSummary.of(context.l10n, preset),
+                style: text.bodySmall?.copyWith(color: AppColors.textSecondary),
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      RoutineSummary.estimate(context.l10n, preset),
+                      style: text.bodySmall?.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ),
+                  _StartButton(name: preset.name, onStart: onStart, size: 40),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 PhaseColors _modeColors(Routine r) =>
@@ -1142,7 +1502,7 @@ class _CourseTile extends StatelessWidget {
   );
 }
 
-/// 홈 맨 아래 "추가" 버튼: 블러 유리 + 위쪽 하이라이트 (docs/04 3장).
+/// 홈 맨 아래 "새로 만들기" 버튼: 블러 유리 + 위쪽 하이라이트 (docs/04 3장).
 /// 화면에 하나뿐이라 BackdropFilter를 써도 부담이 적다.
 class _GlassAddButton extends StatelessWidget {
   const _GlassAddButton({required this.onPressed});
@@ -1203,7 +1563,7 @@ class _GlassAddButton extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        context.l10n.add,
+                        context.l10n.createNew,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 17,
