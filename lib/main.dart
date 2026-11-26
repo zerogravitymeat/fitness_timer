@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'app/app_services.dart';
@@ -43,7 +43,10 @@ class FitnessTimerApp extends StatelessWidget {
       title: 'Fitness Timer',
       locale: language == null ? null : Locale(language),
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       // 설정한 언어나 기기 언어. 지원하지 않는 언어면 영어
       localeResolutionCallback: (locale, _) => resolveLocale(locale),

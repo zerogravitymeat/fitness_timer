@@ -37,6 +37,8 @@ dependencies:
   flutter_foreground_task: ^11.0.3
   flutter_tts: ^4.2.5
   audioplayers: ^6.8.1
+  material_ui: ^1.11.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -330,13 +330,14 @@ class _PurchaseSection extends StatelessWidget {
                   title: Text(context.l10n.restorePurchase),
                   onTap: () async {
                     final messenger = ScaffoldMessenger.of(context);
+                    final l10n = context.l10n;
                     await AppServices.billing.restore();
                     messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           ent.value.isFull
-                              ? context.l10n.purchaseRestored
-                              : context.l10n.noPurchaseToRestore,
+                              ? l10n.purchaseRestored
+                              : l10n.noPurchaseToRestore,
                         ),
                       ),
                     );

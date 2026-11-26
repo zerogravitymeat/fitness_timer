@@ -1,7 +1,7 @@
 import 'package:fitness_timer/features/edit/edit_page.dart';
 import 'package:fitness_timer/l10n/l10n.dart';
 import 'package:fitness_timer/models/routine.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -11,7 +11,10 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         locale: Locale('ko'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
         supportedLocales: AppLocalizations.supportedLocales,
         home: EditPage(initial: Routine(id: 'r1', name: ''), isNew: true),
       ),
