@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fitness_timer/engine/cue.dart';
 import 'package:fitness_timer/engine/segment.dart';
-import 'package:fitness_timer/engine/tempo_clock.dart';
 import 'package:fitness_timer/engine/timer_core.dart';
 import 'package:fitness_timer/models/presets.dart';
 import 'package:fitness_timer/models/routine.dart';
@@ -125,8 +124,7 @@ void main() {
       snap = core.snapshot();
       expect(snap.tempo!.completedReps, 2);
       expect(snap.tempo!.repElapsedMs, 0);
-      expect(snap.tempo!.phase, TempoPhase.down);
-      // 내려가기 신호를 다시 내고, 이미 읽은 "둘"은 반복하지 않는다
+      // 회차 시작 신호를 다시 내고, 이미 읽은 "둘"은 반복하지 않는다
       final cues = events.whereType<CueDue>().map((e) => e.cue).toList();
       expect(cues.single.sound, CueSound.low);
       expect(cues.single.speech, isNull);
@@ -327,28 +325,6 @@ void main() {
       expect(speeches(e), isEmpty); // 횟수 모드 운동 시작은 긴 비프만
     });
 
-    test('동작 + 숫자: 재개하면 "내려가고"를 다시 읽는다', () {
-      const r = Routine(
-        id: 'a',
-        name: 'a',
-        endCondition: EndCondition.reps,
-        targetReps: 10,
-        rounds: 1,
-        prepMs: 0,
-        cueStyle: CueStyle.actionAndNumbers,
-      );
-      final core = TimerCore(routine: r, clock: clock.call);
-      core.start();
-      run(core, clock, 4000); // 2회차 1초째
-      core.pause();
-      clock.now += 5000;
-      final cue = core.resume().whereType<CueDue>().single.cue;
-      expect(cue.speech, '내려가고');
-      expect(cue.sound, CueSound.low);
-      // 이어서 다음 박자는 정상
-      expect(speeches(run(core, clock, 3000)), ['올라오고', '둘, 내려가고']);
-    });
-
     test('세트 간 휴식 중 이전(3초 이내) → 직전 운동 구간을 1회차부터', () {
       final core = TimerCore(routine: Presets.strength, clock: clock.call);
       core.start();
@@ -398,16 +374,13 @@ void main() {
         id: 'bad',
         name: 'bad',
         endCondition: EndCondition.reps,
-        tempo: Tempo(downMs: 0, holdMs: -5, upMs: 0),
+        tempo: Tempo(0),
         targetReps: 0,
         rounds: 0,
         prepMs: -1000,
       );
       final core = TimerCore(routine: r, clock: clock.call);
-      expect(
-        core.routine.tempo,
-        const Tempo(downMs: 500, holdMs: 0, upMs: 500),
-      );
+      expect(core.routine.tempo, const Tempo(1000));
       expect(core.routine.targetReps, 1);
       expect(core.segments.length, 1); // 준비 없음, 운동 1개
       final events = [...core.start(), ...run(core, clock, 2000)];

@@ -306,7 +306,7 @@ class TimerCore {
     return events;
   }
 
-  /// 횟수 모드 운동 중이면 현재 회차를 처음(내려가기)부터 다시 한다 (docs/02 5장).
+  /// 횟수 모드 운동 중이면 현재 회차를 처음부터 다시 한다 (docs/02 5장).
   List<EngineEvent> resume() {
     if (_status != RunStatus.paused) return [];
     _pausedAccum += clock() - _pausedAt;
@@ -325,15 +325,7 @@ class TimerCore {
         // 회차 시작 신호를 다시 낸다 (이미 낸 회차 숫자는 반복하지 않는다)
         events.add(
           CueDue(
-            Cue(
-              offsetMs: floored,
-              kind: CueKind.tempoPhase,
-              tempoPhase: TempoPhase.down,
-              sound: CueSound.low,
-              speech: routine.cueStyle == CueStyle.actionAndNumbers
-                  ? settings.text.down
-                  : null,
-            ),
+            Cue(offsetMs: floored, kind: CueKind.repStart, sound: CueSound.low),
             segmentIndex: _index,
             lateMs: 0,
           ),

@@ -448,12 +448,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get cueNumbersOnly => '숫자만';
 
   @override
-  String get cueActionAndNumbers => '동작 + 숫자';
-
-  @override
-  String get cueActionAndNumbersDisabled => '동작 + 숫자 (1회 2.5초 이상)';
-
-  @override
   String get cueBeepOnly => '비프만';
 
   @override
@@ -471,16 +465,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get tempoFast => '빠르게';
 
   @override
-  String get tempoTitle => '템포 (내려가기-멈춤-올라오기)';
+  String get tempoTitle => '템포 (1회 시간)';
 
   @override
-  String get phaseDown => '내려가기';
+  String get repTime => '1회 시간';
 
   @override
-  String get phaseHold => '멈춤';
-
-  @override
-  String get phaseUp => '올라오기';
+  String tempoPerRep(String seconds) {
+    return '1회 $seconds초';
+  }
 
   @override
   String decreaseNamed(String label) {

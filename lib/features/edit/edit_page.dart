@@ -73,14 +73,7 @@ class _EditPageState extends State<EditPage> {
     super.dispose();
   }
 
-  void _set(Routine r) {
-    // 템포가 빨라져 "동작 + 숫자"를 못 쓰게 되면 숫자만으로 바꾼다
-    if (r.cueStyle == CueStyle.actionAndNumbers &&
-        !EditRules.actionCueAllowed(r.tempo)) {
-      r = r.copyWith(cueStyle: CueStyle.numbersOnly);
-    }
-    setState(() => _r = r);
-  }
+  void _set(Routine r) => setState(() => _r = r);
 
   Future<void> _switchMode(EndCondition to) async {
     if (to == _r.endCondition) return;
@@ -275,15 +268,6 @@ class _EditPageState extends State<EditPage> {
                           DropdownMenuItem(
                             value: CueStyle.numbersOnly,
                             child: Text(context.l10n.cueNumbersOnly),
-                          ),
-                          DropdownMenuItem(
-                            value: CueStyle.actionAndNumbers,
-                            enabled: EditRules.actionCueAllowed(r.tempo),
-                            child: Text(
-                              EditRules.actionCueAllowed(r.tempo)
-                                  ? context.l10n.cueActionAndNumbers
-                                  : context.l10n.cueActionAndNumbersDisabled,
-                            ),
                           ),
                           DropdownMenuItem(
                             value: CueStyle.beepOnly,
@@ -498,7 +482,9 @@ class _EditPageState extends State<EditPage> {
           children: [
             for (final t in _presetTempos)
               ChoiceChip(
-                label: Text('${_tempoName(t)} ${t.label}'),
+                label: Text(
+                  '${_tempoName(t)} ${context.l10n.tempoSeconds(t.seconds)}',
+                ),
                 selected: selected == t,
                 onSelected: (_) {
                   _customTempo = false;
@@ -512,50 +498,12 @@ class _EditPageState extends State<EditPage> {
             ),
           ],
         ),
-        if (selected == null) ...[
+        if (selected == null)
           _TempoStepper(
-            label: context.l10n.phaseDown,
-            ms: r.tempo.downMs,
-            min: RoutineLimits.minTempoMs,
-            onChanged: (v) => _set(
-              r.copyWith(
-                tempo: Tempo(
-                  downMs: v,
-                  holdMs: r.tempo.holdMs,
-                  upMs: r.tempo.upMs,
-                ),
-              ),
-            ),
+            label: context.l10n.repTime,
+            ms: r.tempo.repMs,
+            onChanged: (v) => _set(r.copyWith(tempo: Tempo(v))),
           ),
-          _TempoStepper(
-            label: context.l10n.phaseHold,
-            ms: r.tempo.holdMs,
-            min: 0,
-            onChanged: (v) => _set(
-              r.copyWith(
-                tempo: Tempo(
-                  downMs: r.tempo.downMs,
-                  holdMs: v,
-                  upMs: r.tempo.upMs,
-                ),
-              ),
-            ),
-          ),
-          _TempoStepper(
-            label: context.l10n.phaseUp,
-            ms: r.tempo.upMs,
-            min: RoutineLimits.minTempoMs,
-            onChanged: (v) => _set(
-              r.copyWith(
-                tempo: Tempo(
-                  downMs: r.tempo.downMs,
-                  holdMs: r.tempo.holdMs,
-                  upMs: v,
-                ),
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: 8),
       ],
     );
@@ -763,24 +711,20 @@ class _TempoStepper extends StatelessWidget {
   const _TempoStepper({
     required this.label,
     required this.ms,
-    required this.min,
     required this.onChanged,
   });
   final String label;
   final int ms;
-  final int min;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) => _StepperRow(
     label: label,
-    valueText: context.l10n.tempoSeconds(
-      ms % 1000 == 0 ? '${ms ~/ 1000}' : (ms / 1000).toStringAsFixed(1),
-    ),
-    canDown: ms > min,
-    canUp: ms < RoutineLimits.maxTempoMs,
-    onDown: () => onChanged(EditRules.stepTempo(ms, up: false, min: min)),
-    onUp: () => onChanged(EditRules.stepTempo(ms, up: true, min: min)),
+    valueText: context.l10n.tempoSeconds(Tempo(ms).seconds),
+    canDown: ms > RoutineLimits.minRepMs,
+    canUp: ms < RoutineLimits.maxRepMs,
+    onDown: () => onChanged(EditRules.stepTempo(ms, up: false)),
+    onUp: () => onChanged(EditRules.stepTempo(ms, up: true)),
   );
 }
 

@@ -4,39 +4,31 @@
 enum EndCondition { time, reps }
 
 /// 횟수 모드 음성 안내 방식 (docs/02_기능_명세.md 3.3절)
-enum CueStyle { numbersOnly, actionAndNumbers, beepOnly }
+enum CueStyle { numbersOnly, beepOnly }
 
-/// 횟수 모드 템포: 내려가기 → 멈춤 → 올라오기 (docs/02_기능_명세.md 3.2절)
+/// 횟수 모드 템포: 1회에 걸리는 시간 (docs/02_기능_명세.md 3.2절).
+/// 운동마다 올리기·내리기 순서가 달라 동작은 나누지 않는다.
 class Tempo {
   /// 값 검증은 [Routine.normalized]에서 한다. 저장 파일이 손상돼도
   /// 디버그 빌드에서 바로 죽지 않도록 여기서는 assert를 두지 않는다.
-  const Tempo({required this.downMs, required this.holdMs, required this.upMs});
+  const Tempo(this.repMs);
 
-  final int downMs;
-  final int holdMs;
-  final int upMs;
+  final int repMs;
 
-  int get repMs => downMs + holdMs + upMs;
+  static const slow = Tempo(6000);
+  static const normal = Tempo(3000);
+  static const fast = Tempo(2000);
 
-  static const slow = Tempo(downMs: 3000, holdMs: 1000, upMs: 2000);
-  static const normal = Tempo(downMs: 2000, holdMs: 0, upMs: 1000);
-  static const fast = Tempo(downMs: 1000, holdMs: 0, upMs: 1000);
-
-  /// `2-0-1` 같은 표기
-  String get label => '${_sec(downMs)}-${_sec(holdMs)}-${_sec(upMs)}';
-
-  static String _sec(int ms) =>
-      ms % 1000 == 0 ? '${ms ~/ 1000}' : (ms / 1000).toStringAsFixed(1);
+  /// `3`, `2.5` 같은 초 표기 (단위는 화면에서 붙인다)
+  String get seconds => repMs % 1000 == 0
+      ? '${repMs ~/ 1000}'
+      : (repMs / 1000).toStringAsFixed(1);
 
   @override
-  bool operator ==(Object other) =>
-      other is Tempo &&
-      other.downMs == downMs &&
-      other.holdMs == holdMs &&
-      other.upMs == upMs;
+  bool operator ==(Object other) => other is Tempo && other.repMs == repMs;
 
   @override
-  int get hashCode => Object.hash(downMs, holdMs, upMs);
+  int get hashCode => repMs.hashCode;
 }
 
 /// 루틴 하나 (docs/05_기술_설계.md 5.2절). 시간은 모두 밀리초.
@@ -129,11 +121,7 @@ class Routine {
     'prepMs': prepMs,
     'workMs': workMs,
     'targetReps': targetReps,
-    'tempo': {
-      'downMs': tempo.downMs,
-      'holdMs': tempo.holdMs,
-      'upMs': tempo.upMs,
-    },
+    'tempo': {'repMs': tempo.repMs},
     'restMs': restMs,
     'rounds': rounds,
     'sets': sets,
@@ -147,7 +135,13 @@ class Routine {
     const d = Routine(id: '', name: '');
     int i(String k, int def) => (j[k] as num?)?.toInt() ?? def;
     final t = (j['tempo'] as Map?)?.cast<String, Object?>() ?? const {};
-    int ti(String k, int def) => (t[k] as num?)?.toInt() ?? def;
+    // 1.3.0까지는 내려가기·멈춤·올라오기를 따로 저장했다. 합이 1회 시간이다.
+    final legacy = ['downMs', 'holdMs', 'upMs'].map((k) => t[k] as num?);
+    final repMs =
+        (t['repMs'] as num?)?.toInt() ??
+        (legacy.any((v) => v != null)
+            ? legacy.fold<int>(0, (a, v) => a + (v?.toInt() ?? 0))
+            : d.tempo.repMs);
     T byName<T extends Enum>(List<T> values, Object? v, T def) =>
         values.where((e) => e.name == v).firstOrNull ?? def;
     return Routine(
@@ -162,11 +156,7 @@ class Routine {
       prepMs: i('prepMs', d.prepMs),
       workMs: i('workMs', d.workMs),
       targetReps: i('targetReps', d.targetReps),
-      tempo: Tempo(
-        downMs: ti('downMs', d.tempo.downMs),
-        holdMs: ti('holdMs', d.tempo.holdMs),
-        upMs: ti('upMs', d.tempo.upMs),
-      ),
+      tempo: Tempo(repMs),
       restMs: i('restMs', d.restMs),
       rounds: i('rounds', d.rounds),
       sets: i('sets', d.sets),
@@ -188,15 +178,7 @@ class Routine {
     workMs: workMs.clamp(RoutineLimits.minWorkMs, RoutineLimits.maxWorkMs),
     targetReps: targetReps.clamp(1, RoutineLimits.maxReps),
     tempo: Tempo(
-      downMs: tempo.downMs.clamp(
-        RoutineLimits.minTempoMs,
-        RoutineLimits.maxTempoMs,
-      ),
-      holdMs: tempo.holdMs.clamp(0, RoutineLimits.maxTempoMs),
-      upMs: tempo.upMs.clamp(
-        RoutineLimits.minTempoMs,
-        RoutineLimits.maxTempoMs,
-      ),
+      tempo.repMs.clamp(RoutineLimits.minRepMs, RoutineLimits.maxRepMs),
     ),
     restMs: restMs.clamp(0, RoutineLimits.maxRestMs),
     rounds: rounds.clamp(1, RoutineLimits.maxRounds),
@@ -213,8 +195,8 @@ abstract final class RoutineLimits {
   static const minWorkMs = 5 * 1000;
   static const maxWorkMs = (99 * 60 + 59) * 1000;
   static const maxReps = 100;
-  static const minTempoMs = 500;
-  static const maxTempoMs = 5000;
+  static const minRepMs = 1000;
+  static const maxRepMs = 15000;
   static const maxRestMs = (99 * 60 + 59) * 1000;
   static const maxRounds = 99;
   static const maxSets = 20;

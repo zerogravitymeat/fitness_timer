@@ -6,9 +6,15 @@ import '../../services/run/run_labels.dart';
 
 /// 루틴 요약 표기 (docs/03_화면_설계.md 3장 "루틴 항목")
 abstract final class RoutineSummary {
-  /// 시간 모드: `20초/10초 × 8` (+ `× 2세트`), 횟수 모드: `12회 × 3세트 · 2-0-1`
+  /// 시간 모드: `20초/10초 × 8` (+ `× 2세트`), 횟수 모드: `12회 × 3세트 · 1회 3초`
   static String of(AppLocalizations l, Routine r) {
-    if (r.isReps) return l.summaryReps(r.targetReps, r.rounds, r.tempo.label);
+    if (r.isReps) {
+      return l.summaryReps(
+        r.targetReps,
+        r.rounds,
+        l.tempoPerRep(r.tempo.seconds),
+      );
+    }
     final base =
         '${RunLabels.duration(l, r.workMs)}/${RunLabels.duration(l, r.restMs)} × ${r.rounds}';
     return r.sets > 1 ? l.summaryWithSets(base, r.sets) : base;

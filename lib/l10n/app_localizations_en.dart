@@ -497,12 +497,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cueNumbersOnly => 'Numbers only';
 
   @override
-  String get cueActionAndNumbers => 'Actions + numbers';
-
-  @override
-  String get cueActionAndNumbersDisabled => 'Actions + numbers (2.5s+ per rep)';
-
-  @override
   String get cueBeepOnly => 'Beeps only';
 
   @override
@@ -520,16 +514,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tempoFast => 'Fast';
 
   @override
-  String get tempoTitle => 'Tempo (down-hold-up)';
+  String get tempoTitle => 'Tempo (time per rep)';
 
   @override
-  String get phaseDown => 'Down';
+  String get repTime => 'Time per rep';
 
   @override
-  String get phaseHold => 'Hold';
-
-  @override
-  String get phaseUp => 'Up';
+  String tempoPerRep(String seconds) {
+    return '${seconds}s per rep';
+  }
 
   @override
   String decreaseNamed(String label) {

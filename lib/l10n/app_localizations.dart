@@ -860,18 +860,6 @@ abstract class AppLocalizations {
   /// **'숫자만'**
   String get cueNumbersOnly;
 
-  /// No description provided for @cueActionAndNumbers.
-  ///
-  /// In ko, this message translates to:
-  /// **'동작 + 숫자'**
-  String get cueActionAndNumbers;
-
-  /// No description provided for @cueActionAndNumbersDisabled.
-  ///
-  /// In ko, this message translates to:
-  /// **'동작 + 숫자 (1회 2.5초 이상)'**
-  String get cueActionAndNumbersDisabled;
-
   /// No description provided for @cueBeepOnly.
   ///
   /// In ko, this message translates to:
@@ -905,26 +893,20 @@ abstract class AppLocalizations {
   /// No description provided for @tempoTitle.
   ///
   /// In ko, this message translates to:
-  /// **'템포 (내려가기-멈춤-올라오기)'**
+  /// **'템포 (1회 시간)'**
   String get tempoTitle;
 
-  /// No description provided for @phaseDown.
+  /// No description provided for @repTime.
   ///
   /// In ko, this message translates to:
-  /// **'내려가기'**
-  String get phaseDown;
+  /// **'1회 시간'**
+  String get repTime;
 
-  /// No description provided for @phaseHold.
+  /// No description provided for @tempoPerRep.
   ///
   /// In ko, this message translates to:
-  /// **'멈춤'**
-  String get phaseHold;
-
-  /// No description provided for @phaseUp.
-  ///
-  /// In ko, this message translates to:
-  /// **'올라오기'**
-  String get phaseUp;
+  /// **'1회 {seconds}초'**
+  String tempoPerRep(String seconds);
 
   /// No description provided for @decreaseNamed.
   ///

@@ -7,7 +7,7 @@ import '../../design/glass.dart';
 import '../../design/tokens.dart';
 import '../../engine/segment.dart';
 import '../../models/entitlement.dart';
-import '../../engine/tempo_clock.dart';
+import '../../models/routine.dart';
 import '../../engine/timer_core.dart';
 import '../../services/run/run_client.dart';
 import '../paywall/paywall_page.dart';
@@ -289,13 +289,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GlassPill(
-          child: Text(
-            paused
-                ? context.l10n.pause
-                : (v.isRepWork ? _phaseLabel(v.tempoPhase) : segName),
-          ),
-        ),
+        GlassPill(child: Text(paused ? context.l10n.pause : segName)),
         const SizedBox(height: 12),
         if (v.isRepWork) _RepCounter(v: v) else _TimeDisplay(v: v),
         const SizedBox(height: 20),
@@ -309,7 +303,7 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '${v.isRepWork ? '$segName · ' : ''}${RunLabels.progress(context.l10n, v)}',
+                RunLabels.progress(context.l10n, v),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 17,
@@ -409,13 +403,6 @@ class _RunPageState extends State<RunPage> with SingleTickerProviderStateMixin {
       ),
     ),
   );
-
-  String _phaseLabel(TempoPhase? p) => switch (p) {
-    TempoPhase.down => context.l10n.phaseDown,
-    TempoPhase.hold => context.l10n.phaseHold,
-    TempoPhase.up => context.l10n.phaseUp,
-    null => '',
-  };
 }
 
 /// 큰 숫자: 고정폭 + 옅은 그림자 (밝은 빛 위에서도 또렷하게, docs/04 5장)
@@ -504,102 +491,44 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-/// 1회 동작 안에서 지금 위치 (docs/03 5.2절)
+/// 1회 안에서 지금 위치. 회차마다 처음부터 다시 찬다 (docs/03 5.2절)
 class _TempoBar extends StatelessWidget {
   const _TempoBar({required this.v});
   final RunView v;
 
   @override
   Widget build(BuildContext context) {
-    final down = v.tempoDownMs!, hold = v.tempoHoldMs!, up = v.tempoUpMs!;
-    final total = down + hold + up;
-    final elapsed = v.repElapsedMs ?? 0;
-    final pos = elapsed / total;
-    Widget part(int start, int ms, String label, BorderRadius r) {
-      final fill = ((elapsed - start) / ms).clamp(0.0, 1.0);
-      return Expanded(
-        flex: ms,
-        child: Column(
-          children: [
-            Container(
-              height: 16,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.14),
-                borderRadius: r,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-              ),
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: fill,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    borderRadius: r,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.86),
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    const left = BorderRadius.horizontal(
-      left: Radius.circular(999),
-      right: Radius.circular(6),
-    );
-    const mid = BorderRadius.all(Radius.circular(6));
-    const right = BorderRadius.horizontal(
-      left: Radius.circular(6),
-      right: Radius.circular(999),
-    );
-    return LayoutBuilder(
-      builder: (context, c) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Row(
-            children: [
-              part(
-                0,
-                down,
-                '${context.l10n.phaseDown} ${RunLabels.duration(context.l10n, down)}',
-                left,
-              ),
-              if (hold > 0) part(down, hold, context.l10n.phaseHold, mid),
-              part(
-                down + hold,
-                up,
-                '${context.l10n.phaseUp} ${RunLabels.duration(context.l10n, up)}',
-                right,
-              ),
-            ],
+    final repMs = v.repMs!;
+    final f = ((v.repElapsedMs ?? 0) / repMs).clamp(0.0, 1.0);
+    return Column(
+      children: [
+        Container(
+          height: 16,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: Colors.white.withValues(alpha: 0.14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
-          Positioned(
-            left: (c.maxWidth * pos).clamp(0, c.maxWidth - 6),
-            top: -6,
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: f,
             child: Container(
-              width: 6,
-              height: 28,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(3),
-                boxShadow: const [
-                  BoxShadow(color: Color(0xCCFFFFFF), blurRadius: 12),
-                ],
+                borderRadius: BorderRadius.circular(999),
+                color: Colors.white.withValues(alpha: 0.85),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          context.l10n.tempoPerRep(Tempo(repMs).seconds),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.86),
+            fontSize: 13,
+          ),
+        ),
+      ],
     );
   }
 }

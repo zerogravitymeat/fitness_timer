@@ -26,9 +26,9 @@ void main() {
     expect(EditRules.stepTime(5000, up: false, min: 5000, max: 10000), 5000);
     expect(EditRules.stepTime(10000, up: true, min: 5000, max: 10000), 10000);
     expect(EditRules.stepInt(1, up: false, min: 1, max: 99), 1);
-    expect(EditRules.stepTempo(500, up: false, min: 500), 500);
-    expect(EditRules.stepTempo(5000, up: true, min: 500), 5000);
-    expect(EditRules.stepTempo(0, up: true, min: 0), 500);
+    expect(EditRules.stepTempo(1000, up: false), 1000);
+    expect(EditRules.stepTempo(15000, up: true), 15000);
+    expect(EditRules.stepTempo(3000, up: true), 3500);
   });
 
   test('이름: 공백 정리, 빈 이름 거부, 20자 제한', () {
@@ -49,11 +49,6 @@ void main() {
     expect(switched.sets, 1);
     // 횟수 → 시간은 그대로
     expect(EditRules.switchMode(switched, EndCondition.time).sets, 1);
-  });
-
-  test('"동작 + 숫자"는 1회 2.5초 이상일 때만', () {
-    expect(EditRules.actionCueAllowed(Tempo.normal), isTrue); // 3초
-    expect(EditRules.actionCueAllowed(Tempo.fast), isFalse); // 2초
   });
 
   test('copyWith / sameSettingsAs', () {

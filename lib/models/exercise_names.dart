@@ -173,16 +173,7 @@ abstract final class ExerciseNames {
     Exercise('폼롤러', 'Foam Rolling', ExerciseDefaults.time(45, 15, 6)),
     Exercise('요가', 'Yoga', ExerciseDefaults.time(60, 10, 10)),
     Exercise('필라테스', 'Pilates', ExerciseDefaults.time(45, 15, 8)),
-    Exercise(
-      '브리딩',
-      'Breathing',
-      ExerciseDefaults.reps(
-        10,
-        Tempo(downMs: 4000, holdMs: 2000, upMs: 4000),
-        1,
-        0,
-      ),
-    ),
+    Exercise('브리딩', 'Breathing', ExerciseDefaults.reps(10, Tempo(10000), 1, 0)),
     Exercise('쿨다운', 'Cool-down', ExerciseDefaults.time(300, 0, 1)),
     Exercise('워밍업', 'Warm-up', ExerciseDefaults.time(300, 0, 1)),
     // 인터벌 방식 (타바타·HIIT는 프리셋과 같은 값)

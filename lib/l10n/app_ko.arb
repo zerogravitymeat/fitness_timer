@@ -352,8 +352,6 @@
   "skipLastRoundRest": "마지막 라운드 휴식 건너뛰기",
   "cueStyleTitle": "음성 안내 방식",
   "cueNumbersOnly": "숫자만",
-  "cueActionAndNumbers": "동작 + 숫자",
-  "cueActionAndNumbersDisabled": "동작 + 숫자 (1회 2.5초 이상)",
   "cueBeepOnly": "비프만",
   "estimatedTime": "예상 시간 {time}",
   "@estimatedTime": {
@@ -366,10 +364,16 @@
   "tempoSlow": "천천히",
   "tempoNormal": "보통",
   "tempoFast": "빠르게",
-  "tempoTitle": "템포 (내려가기-멈춤-올라오기)",
-  "phaseDown": "내려가기",
-  "phaseHold": "멈춤",
-  "phaseUp": "올라오기",
+  "tempoTitle": "템포 (1회 시간)",
+  "repTime": "1회 시간",
+  "tempoPerRep": "1회 {seconds}초",
+  "@tempoPerRep": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
   "decreaseNamed": "{label} 줄이기",
   "@decreaseNamed": {
     "placeholders": {

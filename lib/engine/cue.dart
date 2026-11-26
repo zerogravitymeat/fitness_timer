@@ -1,11 +1,9 @@
-import 'tempo_clock.dart';
-
 enum CueKind {
   segmentStart,
   countdown,
   halfway,
   tenSecondsLeft,
-  tempoPhase,
+  repStart,
   repCompleted,
   finished,
 }
@@ -25,7 +23,6 @@ class Cue {
     this.vibration,
     this.speech,
     this.rep,
-    this.tempoPhase,
   });
 
   final int offsetMs;
@@ -39,9 +36,6 @@ class Cue {
   /// [CueKind.repCompleted]: 끝낸 회차 (1부터)
   final int? rep;
 
-  /// [CueKind.tempoPhase]: 시작하는 동작
-  final TempoPhase? tempoPhase;
-
   Cue mergeWith(Cue o) {
     assert(o.offsetMs == offsetMs);
     final speeches = [?speech, ?o.speech];
@@ -52,7 +46,6 @@ class Cue {
       vibration: vibration ?? o.vibration,
       speech: speeches.isEmpty ? null : speeches.join(', '),
       rep: rep ?? o.rep,
-      tempoPhase: tempoPhase ?? o.tempoPhase,
     );
   }
 

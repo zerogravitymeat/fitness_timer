@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fitness_timer/engine/segment.dart';
-import 'package:fitness_timer/engine/tempo_clock.dart';
 import 'package:fitness_timer/engine/timer_core.dart';
 import 'package:fitness_timer/models/presets.dart';
 import 'package:fitness_timer/models/routine.dart';
@@ -41,7 +40,8 @@ void main() {
     expect(back.toMap(), v.toMap());
     expect(back.segmentType, SegmentType.work);
     expect(back.completedReps, 2);
-    expect(back.tempoPhase, TempoPhase.down);
+    expect(back.repElapsedMs, 1500);
+    expect(back.repMs, 3000);
     expect(back.nextType, SegmentType.rest);
   });
 

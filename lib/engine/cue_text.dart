@@ -29,8 +29,6 @@ abstract interface class CueText {
   String countdown(int seconds);
   String get halfway;
   String get tenSecondsLeft;
-  String get down;
-  String get up;
   String repNumber(int n);
   String get stopped;
   String completed(int totalMs);
@@ -67,10 +65,6 @@ class KoreanCueText implements CueText {
   String get halfway => '절반 지났습니다';
   @override
   String get tenSecondsLeft => '10초 남았습니다';
-  @override
-  String get down => '내려가고';
-  @override
-  String get up => '올라오고';
   // TTS가 "1"을 "일"로 읽으므로 고유어 수사로 바꿔 넣는다
   @override
   String repNumber(int n) => KoreanSpeech.nativeNumber(n);
@@ -113,10 +107,6 @@ class EnglishCueText implements CueText {
   String get halfway => 'Halfway there';
   @override
   String get tenSecondsLeft => '10 seconds left';
-  @override
-  String get down => 'Down';
-  @override
-  String get up => 'Up';
   // 영어 TTS는 숫자를 그대로 자연스럽게 읽는다
   @override
   String repNumber(int n) => '$n';

@@ -5,36 +5,16 @@ import 'package:fitness_timer/models/routine.dart';
 
 void main() {
   group('TempoClock', () {
-    test('2-0-1: 멈춤 0초는 건너뛴다', () {
+    test('1회 3초: 회차와 회차 안 위치', () {
       const t = Tempo.normal;
-      expect(TempoClock.phases(t).map((e) => e.$1), [
-        TempoPhase.down,
-        TempoPhase.up,
-      ]);
-
       var p = TempoClock.at(t, 12, 0);
-      expect(
-        (p.completedReps, p.phase, p.currentRep(12)),
-        (0, TempoPhase.down, 1),
-      );
+      expect((p.completedReps, p.repElapsedMs, p.currentRep(12)), (0, 0, 1));
 
       p = TempoClock.at(t, 12, 2000);
-      expect((p.completedReps, p.phase), (0, TempoPhase.up));
+      expect((p.completedReps, p.repElapsedMs), (0, 2000));
 
       p = TempoClock.at(t, 12, 3000);
-      expect(
-        (p.completedReps, p.phase, p.currentRep(12)),
-        (1, TempoPhase.down, 2),
-      );
-    });
-
-    test('3-1-2: 멈춤 단계', () {
-      const t = Tempo.slow;
-      final p = TempoClock.at(t, 10, 3500);
-      expect(
-        (p.phase, p.phaseElapsedMs, p.phaseDurationMs),
-        (TempoPhase.hold, 500, 1000),
-      );
+      expect((p.completedReps, p.repElapsedMs, p.currentRep(12)), (1, 0, 2));
     });
 
     test('목표 횟수를 다 채우면 완료 상태', () {
@@ -44,8 +24,27 @@ void main() {
     });
 
     test('템포 표기', () {
-      expect(Tempo.normal.label, '2-0-1');
-      expect(const Tempo(downMs: 1500, holdMs: 0, upMs: 1000).label, '1.5-0-1');
+      expect(Tempo.normal.seconds, '3');
+      expect(const Tempo(2500).seconds, '2.5');
+    });
+  });
+
+  group('Tempo 저장', () {
+    test('1회 시간으로 저장하고 다시 읽는다', () {
+      const r = Routine(id: 'a', name: 'a', tempo: Tempo(4500));
+      expect(Routine.fromJson(r.toJson()).tempo, const Tempo(4500));
+    });
+
+    test('1.3.0까지의 내려가기·멈춤·올라오기 값은 합쳐서 1회 시간으로', () {
+      final r = Routine.fromJson({
+        'id': 'a',
+        'name': 'a',
+        'tempo': {'downMs': 3000, 'holdMs': 1000, 'upMs': 2000},
+        'cueStyle': 'actionAndNumbers',
+      });
+      expect(r.tempo, const Tempo(6000));
+      // 없어진 "동작 + 숫자" 안내는 숫자만으로
+      expect(r.cueStyle, CueStyle.numbersOnly);
     });
   });
 

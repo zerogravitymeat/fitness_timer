@@ -2,7 +2,6 @@ import '../models/routine.dart';
 import 'cue.dart';
 import 'cue_text.dart';
 import 'segment.dart';
-import 'tempo_clock.dart';
 
 /// 앱 전체 알림 설정 중 계획에 영향을 주는 값 (docs/02_기능_명세.md 6.3절)
 /// 소리·진동·음성 켜고 끄기는 계획이 아니라 재생하는 쪽에서 거른다.
@@ -98,52 +97,22 @@ abstract final class CuePlanner {
   }
 
   static void _planReps(CueText text, Routine r, Segment seg, List<Cue> cues) {
-    final t = r.tempo;
+    final repMs = r.tempo.repMs;
     final target = seg.targetReps!;
     final withSpeech = r.cueStyle != CueStyle.beepOnly;
-    final withAction = r.cueStyle == CueStyle.actionAndNumbers;
 
-    for (var i = 0; i < target; i++) {
-      final base = i * t.repMs;
-      var at = base;
-      for (final (phase, dur) in TempoClock.phases(t)) {
-        // 첫 회차의 내려가기는 구간 시작 알림(긴 비프)이 대신한다.
-        if (!(i == 0 && phase == TempoPhase.down)) {
-          cues.add(
-            Cue(
-              offsetMs: at,
-              kind: CueKind.tempoPhase,
-              tempoPhase: phase,
-              sound: switch (phase) {
-                TempoPhase.down => CueSound.low,
-                TempoPhase.hold => CueSound.tick,
-                TempoPhase.up => CueSound.high,
-              },
-              speech: !withAction
-                  ? null
-                  : switch (phase) {
-                      TempoPhase.down => text.down,
-                      TempoPhase.hold => null,
-                      TempoPhase.up => text.up,
-                    },
-            ),
-          );
-        }
-        at += dur;
-      }
-
-      // 회차 완료. 마지막 회차의 완료는 다음 구간 시작 알림이 대신한다.
-      final done = i + 1;
-      if (done < target) {
-        cues.add(
-          Cue(
-            offsetMs: base + t.repMs,
-            kind: CueKind.repCompleted,
-            rep: done,
-            speech: withSpeech ? text.repNumber(done) : null,
-          ),
-        );
-      }
+    // 회차 완료 = 다음 회차 시작. 낮은 비프와 회차 숫자.
+    // 첫 회차 시작은 구간 시작 알림(긴 비프)이, 마지막 회차 완료는 다음 구간 시작 알림이 대신한다.
+    for (var done = 1; done < target; done++) {
+      cues.add(
+        Cue(
+          offsetMs: done * repMs,
+          kind: CueKind.repCompleted,
+          sound: CueSound.low,
+          rep: done,
+          speech: withSpeech ? text.repNumber(done) : null,
+        ),
+      );
     }
   }
 

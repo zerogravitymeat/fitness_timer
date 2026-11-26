@@ -34,9 +34,9 @@ abstract final class EditRules {
     int step = 1,
   }) => (v + (up ? step : -step)).clamp(min, max);
 
-  /// 템포 한 칸 0.5초
-  static int stepTempo(int ms, {required bool up, required int min}) =>
-      (ms + (up ? 500 : -500)).clamp(min, RoutineLimits.maxTempoMs);
+  /// 1회 시간 한 칸 0.5초
+  static int stepTempo(int ms, {required bool up}) => (ms + (up ? 500 : -500))
+      .clamp(RoutineLimits.minRepMs, RoutineLimits.maxRepMs);
 
   /// 이름: 앞뒤 공백 제거, 빈 이름은 저장 불가
   static String? validName(String raw) {
@@ -71,9 +71,6 @@ abstract final class EditRules {
   /// 모드 전환. 횟수 모드는 세트 수 1로 고정한다.
   static Routine switchMode(Routine r, EndCondition to) =>
       r.copyWith(endCondition: to, sets: to == EndCondition.reps ? 1 : r.sets);
-
-  /// 1회 시간이 2.5초 미만이면 "동작 + 숫자" 안내를 쓸 수 없다 (docs/02 3.3절)
-  static bool actionCueAllowed(Tempo t) => t.repMs >= 2500;
 
   /// 새 루틴 기본값 (docs/02 2.1절)
   static Routine blank(String id, String name) => Routine(id: id, name: name);

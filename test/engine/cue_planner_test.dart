@@ -110,7 +110,7 @@ void main() {
     });
   });
 
-  group('횟수 모드 (근력 세트 15회, 2-0-1)', () {
+  group('횟수 모드 (근력 세트 15회, 1회 3초)', () {
     final segs = RoutineCompiler.compile(Presets.strength);
     final work1 = segs[1];
     final work2 = segs[3];
@@ -125,10 +125,7 @@ void main() {
     });
 
     test('준비 구간에서 첫 세트와 횟수를 미리 알린다', () {
-      expect(
-        _plan(Presets.strength, segs[0]).first.speech,
-        '준비하세요, 1세트 15회',
-      );
+      expect(_plan(Presets.strength, segs[0]).first.speech, '준비하세요, 1세트 15회');
       const one = Routine(
         id: 'a',
         name: 'a',
@@ -140,11 +137,11 @@ void main() {
       expect(_plan(one, prep).first.speech, '준비하세요, 10회');
     });
 
-    test('박자: 올라오기 높은 비프, 다음 회차 내려가기 낮은 비프 + 회차 숫자', () {
+    test('회차가 바뀔 때만 낮은 비프 + 회차 숫자, 회차 중간에는 알림 없음', () {
       final cues = {
         for (final c in _plan(Presets.strength, work1)) c.offsetMs: c,
       };
-      expect(cues[2000]!.sound, CueSound.high);
+      expect(cues.keys.where((o) => o % 3000 != 0), isEmpty);
       expect(cues[3000]!.sound, CueSound.low);
       expect(cues[3000]!.speech, '하나');
       expect(cues[6000]!.speech, '둘');
@@ -164,21 +161,6 @@ void main() {
         _plan(Presets.strength, work1).any((c) => c.kind == CueKind.countdown),
         isFalse,
       );
-    });
-
-    test('동작 + 숫자: 같은 시점 안내는 한 문장으로 합친다', () {
-      const r = Routine(
-        id: 'a',
-        name: 'a',
-        endCondition: EndCondition.reps,
-        targetReps: 5,
-        rounds: 1,
-        cueStyle: CueStyle.actionAndNumbers,
-      );
-      final w = RoutineCompiler.compile(r).firstWhere((e) => e.isRepWork);
-      final s = _speech(_plan(r, w));
-      expect(s[2000], '올라오고');
-      expect(s[3000], '하나, 내려가고');
     });
 
     test('비프만: 회차 숫자를 읽지 않는다', () {
@@ -229,7 +211,6 @@ void main() {
         '휴식 1분, 다음은 근력 세트, 1세트 15회',
       );
     });
-
   });
 
   group('영어 음성 안내', () {

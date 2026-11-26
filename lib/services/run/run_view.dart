@@ -31,11 +31,8 @@ class RunView {
     this.nextTargetReps,
     this.targetReps,
     this.completedReps,
-    this.tempoPhase,
     this.repElapsedMs,
-    this.tempoDownMs,
-    this.tempoHoldMs,
-    this.tempoUpMs,
+    this.repMs,
   });
 
   final RunStatus status;
@@ -73,11 +70,10 @@ class RunView {
   // 횟수 모드 운동 구간에서만
   final int? targetReps;
   final int? completedReps;
-  final TempoPhase? tempoPhase;
   final int? repElapsedMs;
-  final int? tempoDownMs;
-  final int? tempoHoldMs;
-  final int? tempoUpMs;
+
+  /// 1회 시간
+  final int? repMs;
 
   bool get isRepWork => targetReps != null;
   int get segmentRemainingMs =>
@@ -122,11 +118,8 @@ class RunView {
       nextTargetReps: next?.targetReps,
       targetReps: seg?.targetReps,
       completedReps: tp?.completedReps,
-      tempoPhase: tp?.phase,
       repElapsedMs: tp?.repElapsedMs,
-      tempoDownMs: seg?.isRepWork == true ? r?.tempo.downMs : null,
-      tempoHoldMs: seg?.isRepWork == true ? r?.tempo.holdMs : null,
-      tempoUpMs: seg?.isRepWork == true ? r?.tempo.upMs : null,
+      repMs: seg?.isRepWork == true ? r?.tempo.repMs : null,
     );
   }
 
@@ -155,11 +148,8 @@ class RunView {
     'nextTargetReps': nextTargetReps,
     'targetReps': targetReps,
     'completedReps': completedReps,
-    'tempoPhase': tempoPhase?.name,
     'repElapsedMs': repElapsedMs,
-    'tempoDownMs': tempoDownMs,
-    'tempoHoldMs': tempoHoldMs,
-    'tempoUpMs': tempoUpMs,
+    'repMs': repMs,
   };
 
   factory RunView.fromMap(Map<Object?, Object?> m) {
@@ -192,11 +182,8 @@ class RunView {
       nextTargetReps: oi('nextTargetReps'),
       targetReps: oi('targetReps'),
       completedReps: oi('completedReps'),
-      tempoPhase: byName(TempoPhase.values, m['tempoPhase']),
       repElapsedMs: oi('repElapsedMs'),
-      tempoDownMs: oi('tempoDownMs'),
-      tempoHoldMs: oi('tempoHoldMs'),
-      tempoUpMs: oi('tempoUpMs'),
+      repMs: oi('repMs'),
     );
   }
 
@@ -208,16 +195,10 @@ class RunView {
     final d = e - segmentElapsedMs;
     int? completed = completedReps;
     int? repElapsed = repElapsedMs;
-    TempoPhase? phase = tempoPhase;
-    if (isRepWork && tempoDownMs != null) {
-      final pos = TempoClock.at(
-        Tempo(downMs: tempoDownMs!, holdMs: tempoHoldMs!, upMs: tempoUpMs!),
-        targetReps!,
-        e,
-      );
+    if (isRepWork && repMs != null) {
+      final pos = TempoClock.at(Tempo(repMs!), targetReps!, e);
       completed = pos.completedReps;
       repElapsed = pos.repElapsedMs;
-      phase = pos.phase;
     }
     return RunView(
       status: status,
@@ -244,11 +225,8 @@ class RunView {
       nextTargetReps: nextTargetReps,
       targetReps: targetReps,
       completedReps: completed,
-      tempoPhase: phase,
       repElapsedMs: repElapsed,
-      tempoDownMs: tempoDownMs,
-      tempoHoldMs: tempoHoldMs,
-      tempoUpMs: tempoUpMs,
+      repMs: repMs,
     );
   }
 }

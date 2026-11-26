@@ -22,7 +22,10 @@ void main() {
       expect(RunLabels.duration(en, 20000), '20s');
       expect(en.repsCount(1), '1 rep');
       expect(en.repsCount(12), '12 reps');
-      expect(RoutineSummary.of(en, Presets.strength), '15 reps × 3 sets · 2-0-1');
+      expect(
+        RoutineSummary.of(en, Presets.strength),
+        '15 reps × 3 sets · 3s per rep',
+      );
     });
 
     test('프리셋 이름은 id로 번역한다', () {
