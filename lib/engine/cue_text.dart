@@ -32,7 +32,6 @@ abstract interface class CueText {
   String get down;
   String get up;
   String repNumber(int n);
-  String get lastReps;
   String get stopped;
   String completed(int totalMs);
 }
@@ -75,8 +74,6 @@ class KoreanCueText implements CueText {
   // TTS가 "1"을 "일"로 읽으므로 고유어 수사로 바꿔 넣는다
   @override
   String repNumber(int n) => KoreanSpeech.nativeNumber(n);
-  @override
-  String get lastReps => '마지막 3회';
   @override
   String get stopped => '운동 종료';
   @override
@@ -123,8 +120,6 @@ class EnglishCueText implements CueText {
   // 영어 TTS는 숫자를 그대로 자연스럽게 읽는다
   @override
   String repNumber(int n) => '$n';
-  @override
-  String get lastReps => 'Last 3';
   @override
   String get stopped => 'Workout ended';
   @override

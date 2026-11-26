@@ -7,7 +7,6 @@ enum CueKind {
   tenSecondsLeft,
   tempoPhase,
   repCompleted,
-  lastReps,
   finished,
 }
 

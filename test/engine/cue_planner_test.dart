@@ -150,10 +150,10 @@ void main() {
       expect(cues[6000]!.speech, '둘');
     });
 
-    test('남은 3회 시점에 "마지막 3회", 마지막 회차 완료는 다음 구간이 대신', () {
+    test('회차는 끝까지 숫자로 세고, 마지막 회차 완료는 다음 구간이 대신', () {
       final s = _speech(_plan(Presets.strength, work1));
       expect(s[33000], '열하나');
-      expect(s[36000], '마지막 3회'); // 12회 완료
+      expect(s[36000], '열둘');
       expect(s[39000], '열셋');
       expect(s[42000], '열넷');
       expect(s.containsKey(45000), isFalse);
@@ -230,17 +230,6 @@ void main() {
       );
     });
 
-    test('목표 횟수 5회 이하면 "마지막 3회" 없이 숫자만', () {
-      const r = Routine(
-        id: 'a',
-        name: 'a',
-        endCondition: EndCondition.reps,
-        targetReps: 5,
-        rounds: 1,
-      );
-      final w = RoutineCompiler.compile(r).firstWhere((e) => e.isRepWork);
-      expect(_plan(r, w).any((c) => c.kind == CueKind.lastReps), isFalse);
-    });
   });
 
   group('영어 음성 안내', () {
@@ -264,7 +253,7 @@ void main() {
       );
       final s = _speech(_plan(Presets.strength, segs[1], settings: en));
       expect(s[3000], '1');
-      expect(s[36000], 'Last 3');
+      expect(s[36000], '12');
     });
 
     test('시간 모드와 완료 안내', () {

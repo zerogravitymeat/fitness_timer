@@ -26,7 +26,6 @@ class CueSettings {
 abstract final class CuePlanner {
   static const halfwayMinMs = 60000;
   static const tenSecondsMinRestMs = 20000;
-  static const lastRepsMinTarget = 6;
 
   /// [durationMs]는 실제 구간 길이 (휴식 +10초가 반영된 값).
   /// [r]은 그 구간이 속한 루틴 (루틴 사이 휴식은 다음 루틴).
@@ -136,17 +135,12 @@ abstract final class CuePlanner {
       // 회차 완료. 마지막 회차의 완료는 다음 구간 시작 알림이 대신한다.
       final done = i + 1;
       if (done < target) {
-        final isLastReps = target >= lastRepsMinTarget && done == target - 3;
         cues.add(
           Cue(
             offsetMs: base + t.repMs,
-            kind: isLastReps ? CueKind.lastReps : CueKind.repCompleted,
+            kind: CueKind.repCompleted,
             rep: done,
-            speech: !withSpeech
-                ? null
-                : isLastReps
-                ? text.lastReps
-                : text.repNumber(done),
+            speech: withSpeech ? text.repNumber(done) : null,
           ),
         );
       }
