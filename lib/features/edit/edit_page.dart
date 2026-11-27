@@ -670,7 +670,7 @@ class _TimeStepper extends StatelessWidget {
         onChanged(EditRules.stepTime(ms, up: false, min: min, max: max)),
     onUp: () => onChanged(EditRules.stepTime(ms, up: true, min: min, max: max)),
     onTapValue: () async {
-      final v = await pickTime(context, label, ms);
+      final v = await pickTime(context, label, ms, max: max);
       if (v != null) onChanged(v.clamp(min, max));
     },
   );
@@ -729,62 +729,79 @@ class _TempoStepper extends StatelessWidget {
 }
 
 /// 값을 탭하면 `분:초` 휠 선택기 (docs/03 4장). 코스 편집에서도 쓴다.
-Future<int?> pickTime(BuildContext context, String label, int ms) {
-  var m = (ms ~/ 1000) ~/ 60, s = (ms ~/ 1000) % 60;
+/// [max]를 넘는 값은 고를 수 없게 한다. 고른 뒤에 잘라내면 초가 사라진 것처럼 보인다.
+Future<int?> pickTime(
+  BuildContext context,
+  String label,
+  int ms, {
+  required int max,
+}) {
+  final maxM = (max ~/ 1000) ~/ 60, maxS = (max ~/ 1000) % 60;
+  var m = ((ms ~/ 1000) ~/ 60).clamp(0, maxM);
+  var s = (ms ~/ 1000) % 60;
+  int secondsIn(int m) => m == maxM ? maxS : 59;
+  s = s.clamp(0, secondsIn(m));
   return showModalBottomSheet<int>(
     context: context,
-    builder: (c) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(label, style: Theme.of(c).textTheme.titleMedium),
-          ),
-          SizedBox(
-            height: 180,
-            child: Row(
-              children: [
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: m,
-                    ),
-                    onSelectedItemChanged: (v) => m = v,
-                    children: [
-                      for (var i = 0; i < 100; i++)
-                        Center(child: Text(c.l10n.durationMinutes(i))),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 40,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: s,
-                    ),
-                    onSelectedItemChanged: (v) => s = v,
-                    children: [
-                      for (var i = 0; i < 60; i++)
-                        Center(child: Text(c.l10n.durationSeconds(i))),
-                    ],
-                  ),
-                ),
-              ],
+    builder: (c) => StatefulBuilder(
+      builder: (c, setState) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(label, style: Theme.of(c).textTheme.titleMedium),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
+            SizedBox(
+              height: 180,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CupertinoPicker(
+                      itemExtent: 40,
+                      scrollController: FixedExtentScrollController(
+                        initialItem: m,
+                      ),
+                      onSelectedItemChanged: (v) => setState(() {
+                        m = v;
+                        s = s.clamp(0, secondsIn(m));
+                      }),
+                      children: [
+                        for (var i = 0; i <= maxM; i++)
+                          Center(child: Text(c.l10n.durationMinutes(i))),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: CupertinoPicker(
+                      // 고를 수 있는 초가 바뀌면 휠을 새로 만들어 선택 위치를 맞춘다
+                      key: ValueKey(secondsIn(m)),
+                      itemExtent: 40,
+                      scrollController: FixedExtentScrollController(
+                        initialItem: s,
+                      ),
+                      onSelectedItemChanged: (v) => s = v,
+                      children: [
+                        for (var i = 0; i <= secondsIn(m); i++)
+                          Center(child: Text(c.l10n.durationSeconds(i))),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              onPressed: () => Navigator.pop(c, (m * 60 + s) * 1000),
-              child: Text(context.l10n.confirm),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                onPressed: () => Navigator.pop(c, (m * 60 + s) * 1000),
+                child: Text(context.l10n.confirm),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );

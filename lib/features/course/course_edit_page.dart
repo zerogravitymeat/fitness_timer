@@ -561,6 +561,7 @@ class _RestSheet extends StatelessWidget {
                       context,
                       context.l10n.courseRest,
                       current,
+                      max: CourseLimits.maxRestMs,
                     );
                     if (v != null) nav.pop(v);
                   },

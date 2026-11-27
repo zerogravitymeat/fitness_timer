@@ -191,7 +191,7 @@ class Routine {
 
 /// 설정 항목 범위 (docs/02_기능_명세.md 2.1절, 3.2절)
 abstract final class RoutineLimits {
-  static const maxPrepMs = 60 * 1000;
+  static const maxPrepMs = 10 * 60 * 1000;
   static const minWorkMs = 5 * 1000;
   static const maxWorkMs = (99 * 60 + 59) * 1000;
   static const maxReps = 100;
