@@ -503,7 +503,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String totalRemaining(String time) {
-    return '전체 $time';
+    return '남은 시간 $time';
   }
 
   @override

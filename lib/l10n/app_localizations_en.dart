@@ -552,7 +552,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String totalRemaining(String time) {
-    return 'Total $time';
+    return '$time left';
   }
 
   @override

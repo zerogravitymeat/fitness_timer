@@ -401,7 +401,7 @@
       }
     }
   },
-  "totalRemaining": "전체 {time}",
+  "totalRemaining": "남은 시간 {time}",
   "@totalRemaining": {
     "placeholders": {
       "time": {

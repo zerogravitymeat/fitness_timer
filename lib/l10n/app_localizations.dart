@@ -948,7 +948,7 @@ abstract class AppLocalizations {
   /// No description provided for @totalRemaining.
   ///
   /// In ko, this message translates to:
-  /// **'전체 {time}'**
+  /// **'남은 시간 {time}'**
   String totalRemaining(String time);
 
   /// No description provided for @plusTenSeconds.

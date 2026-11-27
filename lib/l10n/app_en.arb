@@ -141,7 +141,7 @@
   "keepGoing": "Keep going",
   "stopAction": "End",
   "nextCoursePosition": "Next {position}",
-  "totalRemaining": "Total {time}",
+  "totalRemaining": "{time} left",
   "plusTenSeconds": "+10s",
   "setDone": "Set done",
   "endWorkout": "End workout",
