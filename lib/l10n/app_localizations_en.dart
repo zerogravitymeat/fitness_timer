@@ -612,10 +612,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get courseOrderHint =>
-      'Drag the handle (≡) to reorder, and tap a rest to change it';
+      'Press and hold to drag and reorder, swipe left to remove. Tap a rest to change it';
 
   @override
   String get deletedRoutine => 'Deleted routine';
+
+  @override
+  String removedNamed(String name) {
+    return 'Removed $name';
+  }
 
   @override
   String removeNamed(String name) {

@@ -554,10 +554,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get courseOrderHintEmpty => '아래 버튼으로 이어서 할 루틴을 넣으세요';
 
   @override
-  String get courseOrderHint => '손잡이(≡)를 끌어 순서를 바꾸고, 사이의 휴식을 눌러 바꾸세요';
+  String get courseOrderHint =>
+      '꾹 눌러 끌면 순서가 바뀌고, 왼쪽으로 밀면 빠져요. 사이의 휴식은 눌러서 바꾸세요';
 
   @override
   String get deletedRoutine => '지워진 루틴';
+
+  @override
+  String removedNamed(String name) {
+    return '\"$name\" 루틴을 뺐어요';
+  }
 
   @override
   String removeNamed(String name) {

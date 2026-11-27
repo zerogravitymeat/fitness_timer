@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/app_services.dart';
@@ -40,6 +41,7 @@ class _Item {
 
 class _CourseEditPageState extends State<CourseEditPage> {
   late final _name = TextEditingController(text: widget.initial.name);
+  final _scroll = ScrollController();
   late final List<_Item> _items = [
     // 지워진 루틴은 편집 화면에서도 보이지 않게
     for (final s in widget.initial.steps)
@@ -64,6 +66,7 @@ class _CourseEditPageState extends State<CourseEditPage> {
   @override
   void dispose() {
     _name.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -76,8 +79,45 @@ class _CourseEditPageState extends State<CourseEditPage> {
       isScrollControlled: true,
       builder: (_) => const _RoutinePicker(),
     );
-    if (r == null) return;
+    if (r == null || !mounted) return;
     setState(() => _items.add(_Item(CourseStep(routineId: r.id))));
+    // 루틴이 많으면 추가 버튼이 화면 밖에 있으니, 넣은 루틴과 버튼이 보이게 맨 아래로
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  /// 밀어서 뺀 루틴. 실수로 밀었을 수 있으니 되돌릴 수 있게 한다.
+  void _remove(_Item item) {
+    final i = _items.indexOf(item);
+    if (i < 0) return;
+    final r = _routine(item);
+    setState(() => _items.removeAt(i));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            context.l10n.removedNamed(r?.name ?? context.l10n.routine),
+          ),
+          // 버튼이 있는 SnackBar는 기본으로 사라지지 않으므로
+          // 직접 시간이 지나면 닫히게 한다
+          persist: false,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: context.l10n.undo,
+            onPressed: () {
+              if (!mounted || _items.contains(item)) return;
+              setState(() => _items.insert(i.clamp(0, _items.length), item));
+            },
+          ),
+        ),
+      );
   }
 
   Future<void> _editRest(_Item item) async {
@@ -142,131 +182,145 @@ class _CourseEditPageState extends State<CourseEditPage> {
             widget.isNew ? context.l10n.newCourse : context.l10n.editCourse,
           ),
         ),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-          children: [
-            GlassPanel(
-              level: GlassLevel.subtle,
-              radius: 20,
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: TextField(
-                controller: _name,
-                maxLength: RoutineLimits.maxNameLength,
-                decoration: InputDecoration(
-                  labelText: context.l10n.name,
-                  errorText: nameOk ? null : context.l10n.nameRequired,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 20, 4, 4),
-              child: Text(context.l10n.routineOrder, style: text.titleSmall),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-              child: Text(
-                _items.isEmpty
-                    ? context.l10n.courseOrderHintEmpty
-                    : context.l10n.courseOrderHint,
-                style: text.bodySmall,
-              ),
-            ),
-            ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              itemCount: _items.length,
-              onReorderItem: (o, n) {
-                if (o == n) return;
-                HapticFeedback.selectionClick();
-                setState(() => _items.insert(n, _items.removeAt(o)));
-              },
-              proxyDecorator: (child, index, animation) => Material(
-                color: Colors.transparent,
-                elevation: 8,
-                shadowColor: Colors.black54,
-                borderRadius: BorderRadius.circular(18),
-                child: child,
-              ),
-              itemBuilder: (_, i) {
-                final item = _items[i];
-                final r = _routine(item);
-                return Column(
-                  key: item.key,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.only(
-                          left: 16,
-                          right: 4,
-                        ),
-                        leading: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: Colors.white.withValues(alpha: 0.12),
-                          foregroundColor: Colors.white,
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ),
-                        title: Text(
-                          r?.name ?? context.l10n.deletedRoutine,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: r == null
-                            ? null
-                            : Text(
-                                '${RoutineSummary.of(context.l10n, r)} · ${RoutineSummary.estimate(context.l10n, r)}',
-                              ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              tooltip: context.l10n.removeNamed(
-                                r?.name ?? context.l10n.routine,
-                              ),
-                              icon: const Icon(Icons.close_rounded),
-                              onPressed: () =>
-                                  setState(() => _items.removeAt(i)),
-                            ),
-                            ReorderableDragStartListener(
-                              index: i,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Icon(
-                                  Icons.drag_handle_rounded,
-                                  semanticLabel: context.l10n.dragToMove,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+        // 루틴 목록을 바깥 스크롤의 sliver로 두어야 끌 때 화면 끝에서 자동 스크롤된다
+        body: CustomScrollView(
+          controller: _scroll,
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              sliver: SliverList.list(
+                children: [
+                  GlassPanel(
+                    level: GlassLevel.subtle,
+                    radius: 20,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: TextField(
+                      controller: _name,
+                      maxLength: RoutineLimits.maxNameLength,
+                      decoration: InputDecoration(
+                        labelText: context.l10n.name,
+                        errorText: nameOk ? null : context.l10n.nameRequired,
                       ),
                     ),
-                    // 마지막 루틴 뒤에는 휴식이 없다
-                    if (i < _items.length - 1)
-                      _RestChip(
-                        ms: item.step.restAfterMs,
-                        onTap: () => _editRest(item),
-                      ),
-                  ],
-                );
-              },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 20, 4, 4),
+                    child: Text(
+                      context.l10n.routineOrder,
+                      style: text.titleSmall,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                    child: Text(
+                      _items.isEmpty
+                          ? context.l10n.courseOrderHintEmpty
+                          : context.l10n.courseOrderHint,
+                      style: text.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverReorderableList(
+                itemCount: _items.length,
+                dragBoundaryProvider: _ListBoundary.new,
+                onReorderStart: (_) => HapticFeedback.mediumImpact(),
+                onReorderItem: (o, n) {
+                  if (o == n) return;
+                  HapticFeedback.selectionClick();
+                  setState(() => _items.insert(n, _items.removeAt(o)));
+                },
+                proxyDecorator: (child, index, animation) => Material(
+                  color: Colors.transparent,
+                  elevation: 8,
+                  shadowColor: Colors.black54,
+                  borderRadius: BorderRadius.circular(18),
+                  child: child,
+                ),
+                itemBuilder: (_, i) {
+                  final item = _items[i];
+                  final r = _routine(item);
+                  final name = r?.name ?? context.l10n.routine;
+                  return ReorderableDelayedDragStartListener(
+                    key: item.key,
+                    index: i,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 꾹 눌러 끌면 순서 바꾸기, 왼쪽으로 밀면 빼기
+                        Semantics(
+                          hint: context.l10n.dragToMove,
+                          customSemanticsActions: {
+                            CustomSemanticsAction(
+                              label: context.l10n.removeNamed(name),
+                            ): () =>
+                                _remove(item),
+                          },
+                          child: Dismissible(
+                            key: ObjectKey(item),
+                            direction: DismissDirection.endToStart,
+                            onDismissed: (_) => _remove(item),
+                            background: const _RemoveBackground(),
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  foregroundColor: Colors.white,
+                                  child: Text(
+                                    '${i + 1}',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                                title: Text(
+                                  r?.name ?? context.l10n.deletedRoutine,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: r == null
+                                    ? null
+                                    : Text(
+                                        '${RoutineSummary.of(context.l10n, r)} · ${RoutineSummary.estimate(context.l10n, r)}',
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 마지막 루틴 뒤에는 휴식이 없다
+                        if (i < _items.length - 1)
+                          _RestChip(
+                            ms: item.step.restAfterMs,
+                            onTap: () => _editRest(item),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              icon: const Icon(Icons.add),
-              label: Text(
-                _items.length >= CourseLimits.maxSteps
-                    ? context.l10n.maxSteps(CourseLimits.maxSteps)
-                    : context.l10n.addRoutine,
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              sliver: SliverToBoxAdapter(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: Text(
+                    _items.length >= CourseLimits.maxSteps
+                        ? context.l10n.maxSteps(CourseLimits.maxSteps)
+                        : context.l10n.addRoutine,
+                  ),
+                  onPressed: _items.length >= CourseLimits.maxSteps
+                      ? null
+                      : _add,
+                ),
               ),
-              onPressed: _items.length >= CourseLimits.maxSteps ? null : _add,
             ),
           ],
         ),
@@ -325,6 +379,83 @@ class _CourseEditPageState extends State<CourseEditPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 끌고 있는 루틴이 루틴 순서 영역 밖으로 나가지 않게 한다.
+/// 목록이 화면 위·아래로 더 이어지면 그쪽 화면 끝을 조금 넘을 수 있게 둔다.
+/// 자동 스크롤은 끄는 항목이 화면 끝을 넘어야 걸리기 때문이다.
+class _ListBoundary extends DragBoundaryDelegate<Rect> {
+  _ListBoundary(this.context);
+  final BuildContext context;
+
+  static const _overscroll = 16.0;
+
+  /// 지금 화면에 보이는 목록 영역(전역 좌표). 끄는 동안 스크롤되므로 매번 잰다.
+  Rect? get _bounds {
+    final sliver = context.findRenderObject();
+    if (sliver is! RenderSliver || !sliver.attached) return null;
+    final g = sliver.geometry;
+    if (g == null) return null;
+    final c = sliver.constraints;
+    final r = MatrixUtils.transformRect(
+      sliver.getTransformTo(null),
+      Rect.fromLTWH(0, 0, c.crossAxisExtent, g.paintExtent),
+    );
+    final moreAbove = c.scrollOffset > 0;
+    final moreBelow = c.scrollOffset + g.paintExtent < g.scrollExtent - 0.5;
+    return Rect.fromLTRB(
+      r.left,
+      moreAbove ? r.top - _overscroll : r.top,
+      r.right,
+      moreBelow ? r.bottom + _overscroll : r.bottom,
+    );
+  }
+
+  @override
+  bool isWithinBoundary(Rect draggedObject) {
+    final b = _bounds;
+    return b == null ||
+        (b.contains(draggedObject.topLeft) &&
+            b.contains(draggedObject.bottomRight));
+  }
+
+  @override
+  Rect nearestPositionWithinBoundary(Rect draggedObject) {
+    final b = _bounds;
+    if (b == null) return draggedObject;
+    // 영역이 항목보다 작으면(화면 끝에 조금만 보일 때) 위쪽을 맞춘다
+    final top = draggedObject.top.clamp(
+      b.top,
+      (b.bottom - draggedObject.height).clamp(b.top, double.infinity),
+    );
+    final left = draggedObject.left.clamp(
+      b.left,
+      (b.right - draggedObject.width).clamp(b.left, double.infinity),
+    );
+    return Offset(left, top) & draggedObject.size;
+  }
+}
+
+/// 루틴을 왼쪽으로 밀 때 뒤에 보이는 빼기 표시
+class _RemoveBackground extends StatelessWidget {
+  const _RemoveBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.only(right: 24),
+      alignment: Alignment.centerRight,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Icon(
+        Icons.delete_outline_rounded,
+        color: Theme.of(context).colorScheme.onError,
       ),
     );
   }

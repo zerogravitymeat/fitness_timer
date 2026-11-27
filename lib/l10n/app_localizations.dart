@@ -1044,7 +1044,7 @@ abstract class AppLocalizations {
   /// No description provided for @courseOrderHint.
   ///
   /// In ko, this message translates to:
-  /// **'손잡이(≡)를 끌어 순서를 바꾸고, 사이의 휴식을 눌러 바꾸세요'**
+  /// **'꾹 눌러 끌면 순서가 바뀌고, 왼쪽으로 밀면 빠져요. 사이의 휴식은 눌러서 바꾸세요'**
   String get courseOrderHint;
 
   /// No description provided for @deletedRoutine.
@@ -1052,6 +1052,12 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'지워진 루틴'**
   String get deletedRoutine;
+
+  /// No description provided for @removedNamed.
+  ///
+  /// In ko, this message translates to:
+  /// **'\"{name}\" 루틴을 뺐어요'**
+  String removedNamed(String name);
 
   /// No description provided for @removeNamed.
   ///
