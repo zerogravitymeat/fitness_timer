@@ -51,7 +51,8 @@ class CuePlayer {
   static const _files = {
     CueSound.low: 'beep_low.wav',
     CueSound.high: 'beep_high.wav',
-    CueSound.tick: 'tick.wav',
+    CueSound.tick: 'second_tick.wav',
+    CueSound.tock: 'second_tock.wav',
     CueSound.short: 'tick.wav',
     CueSound.long: 'beep_long.wav',
     CueSound.done: 'done.wav',

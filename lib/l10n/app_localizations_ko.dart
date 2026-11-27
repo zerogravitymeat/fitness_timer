@@ -653,6 +653,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get voiceGuide => '음성 안내';
 
   @override
+  String get secondTicksTime => '1초 소리 · 시간 모드';
+
+  @override
+  String get secondTicksReps => '1초 소리 · 횟수 모드';
+
+  @override
+  String get secondTicksHint => '방향 지시등처럼 1초마다 째깍째깍';
+
+  @override
   String get countdownBeforeEnd => '종료 전 카운트다운';
 
   @override

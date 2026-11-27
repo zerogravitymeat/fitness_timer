@@ -59,8 +59,10 @@ void main() {
           s.countdownSeconds,
           s.speechSpeed,
           s.keepScreenOn,
+          s.secondTicksTime,
+          s.secondTicksReps,
         ),
-        (true, true, true, 3, SpeechSpeed.normal, true),
+        (true, true, true, 3, SpeechSpeed.normal, true, false, false),
       );
     });
 
@@ -68,6 +70,7 @@ void main() {
       const s = AppSettings(
         sound: false,
         countdownSeconds: 5,
+        secondTicksReps: true,
         speechSpeed: SpeechSpeed.fast,
       );
       expect(AppSettings.fromJson(s.toJson()).toJson(), s.toJson());

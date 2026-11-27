@@ -714,6 +714,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceGuide => 'Voice cues';
 
   @override
+  String get secondTicksTime => 'Second ticks · Time mode';
+
+  @override
+  String get secondTicksReps => 'Second ticks · Reps mode';
+
+  @override
+  String get secondTicksHint => 'Tick-tock every second, like a turn signal';
+
+  @override
   String get countdownBeforeEnd => 'Countdown before end';
 
   @override

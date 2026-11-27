@@ -9,6 +9,8 @@ class CueSettings {
   const CueSettings({
     this.countdownSeconds = 3,
     this.text = const KoreanCueText(),
+    this.secondTicksTime = false,
+    this.secondTicksReps = false,
   }) : assert(
          countdownSeconds == 0 ||
              countdownSeconds == 3 ||
@@ -19,6 +21,10 @@ class CueSettings {
 
   /// 음성 안내 언어
   final CueText text;
+
+  /// 1초마다 째깍 소리. 시간 모드 루틴과 횟수 모드 루틴을 따로 켠다.
+  final bool secondTicksTime;
+  final bool secondTicksReps;
 }
 
 /// 구간마다 언제 무엇을 알릴지 계획한다 (docs/02_기능_명세.md 6장, 3.3절).
@@ -89,6 +95,20 @@ abstract final class CuePlanner {
             offsetMs: durationMs - 10000,
             kind: CueKind.tenSecondsLeft,
             speech: text.tenSecondsLeft,
+          ),
+        );
+      }
+    }
+
+    // ── 1초 소리. 마지막에 넣어서, 같은 시점의 다른 알림 소리가 있으면 그쪽을 낸다.
+    // 구간 끝(= 다음 구간 시작)에는 다음 구간의 시작 알림이 있으니 넣지 않는다.
+    if (r.isReps ? settings.secondTicksReps : settings.secondTicksTime) {
+      for (var at = 1000; at < durationMs; at += 1000) {
+        cues.add(
+          Cue(
+            offsetMs: at,
+            kind: CueKind.secondTick,
+            sound: (at ~/ 1000).isOdd ? CueSound.tick : CueSound.tock,
           ),
         );
       }

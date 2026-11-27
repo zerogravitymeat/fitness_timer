@@ -116,6 +116,8 @@ class RunTaskHandler extends TaskHandler {
       settings: CueSettings(
         countdownSeconds: app.countdownSeconds,
         text: _cueText,
+        secondTicksTime: app.secondTicksTime,
+        secondTicksReps: app.secondTicksReps,
       ),
     );
     _core = core;

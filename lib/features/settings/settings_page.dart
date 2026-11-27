@@ -156,6 +156,23 @@ class _SettingsPageState extends State<SettingsPage> {
                     value: s.voice,
                     onChanged: (v) => set(s.copyWith(voice: v)),
                   ),
+                  // 소리가 꺼져 있으면 1초 소리도 나지 않는다
+                  SwitchListTile(
+                    title: Text(context.l10n.secondTicksTime),
+                    subtitle: Text(context.l10n.secondTicksHint),
+                    value: s.secondTicksTime,
+                    onChanged: s.sound
+                        ? (v) => set(s.copyWith(secondTicksTime: v))
+                        : null,
+                  ),
+                  SwitchListTile(
+                    title: Text(context.l10n.secondTicksReps),
+                    subtitle: Text(context.l10n.secondTicksHint),
+                    value: s.secondTicksReps,
+                    onChanged: s.sound
+                        ? (v) => set(s.copyWith(secondTicksReps: v))
+                        : null,
+                  ),
                   // 제목 아래에 선택 버튼 (좁은 화면에서 제목이 끊기지 않게)
                   ListTile(
                     title: Text(context.l10n.countdownBeforeEnd),

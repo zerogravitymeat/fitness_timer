@@ -257,4 +257,58 @@ void main() {
   test('완료 안내는 실제 걸린 시간을 읽는다', () {
     expect(CuePlanner.finished(750000).speech, '운동 완료. 총 12분 30초');
   });
+
+  group('1초 소리', () {
+    final tabata = RoutineCompiler.compile(Presets.tabata);
+    final work = tabata.firstWhere((s) => s.type == SegmentType.work);
+    final strength = RoutineCompiler.compile(Presets.strength)[1];
+    const time = CueSettings(secondTicksTime: true);
+    const reps = CueSettings(secondTicksReps: true);
+    Map<int, CueSound?> sounds(List<Cue> cues) => {
+      for (final c in cues) c.offsetMs: c.sound,
+    };
+
+    test('기본으로는 없다', () {
+      expect(
+        _plan(Presets.tabata, work).any((c) => c.kind == CueKind.secondTick),
+        isFalse,
+      );
+    });
+
+    test('1초마다 째깍·똑이 번갈아 나고, 구간 끝에는 넣지 않는다', () {
+      final s = sounds(_plan(Presets.tabata, work, settings: time));
+      expect(s[0], CueSound.long);
+      expect(
+        [s[1000], s[2000], s[3000]],
+        [CueSound.tick, CueSound.tock, CueSound.tick],
+      );
+      expect(s.keys.toList(), [for (var t = 0; t < 20000; t += 1000) t]);
+    });
+
+    test('겹치는 카운트다운은 카운트다운 소리와 음성을 낸다', () {
+      final c = _plan(
+        Presets.tabata,
+        work,
+        settings: time,
+      ).firstWhere((c) => c.offsetMs == 17000);
+      expect(c.kind, CueKind.countdown);
+      expect(c.sound, CueSound.short);
+      expect(c.speech, '3');
+    });
+
+    test('시간 모드와 횟수 모드는 따로 켠다', () {
+      bool ticks(Routine r, Segment s, CueSettings c) =>
+          _plan(r, s, settings: c).any((c) => c.kind == CueKind.secondTick);
+      expect(ticks(Presets.tabata, work, reps), isFalse);
+      expect(ticks(Presets.strength, strength, time), isFalse);
+      expect(ticks(Presets.strength, strength, reps), isTrue);
+    });
+
+    test('횟수 모드: 회차 비프와 겹치면 회차 비프를 낸다', () {
+      final s = sounds(_plan(Presets.strength, strength, settings: reps));
+      expect(s[1000], CueSound.tick);
+      expect(s[2000], CueSound.tock);
+      expect(s[3000], CueSound.low);
+    });
+  });
 }

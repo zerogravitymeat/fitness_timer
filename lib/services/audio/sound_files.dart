@@ -17,6 +17,8 @@ abstract final class SoundFiles {
     'tick.wav',
     'beep_long.wav',
     'done.wav',
+    'second_tick.wav',
+    'second_tock.wav',
   ];
 
   static String? _dir;

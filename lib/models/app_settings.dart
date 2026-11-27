@@ -19,6 +19,8 @@ class AppSettings {
     this.vibration = true,
     this.voice = true,
     this.countdownSeconds = 3,
+    this.secondTicksTime = false,
+    this.secondTicksReps = false,
     this.speechSpeed = SpeechSpeed.normal,
     this.keepScreenOn = true,
     this.language,
@@ -31,6 +33,11 @@ class AppSettings {
 
   /// 0, 3, 5 중 하나
   final int countdownSeconds;
+
+  /// 1초마다 째깍 소리 (시간 모드 / 횟수 모드 루틴)
+  final bool secondTicksTime;
+  final bool secondTicksReps;
+
   final SpeechSpeed speechSpeed;
 
   /// 진행 화면이 열려 있는 동안 화면 꺼짐 방지
@@ -50,6 +57,8 @@ class AppSettings {
     bool? vibration,
     bool? voice,
     int? countdownSeconds,
+    bool? secondTicksTime,
+    bool? secondTicksReps,
     SpeechSpeed? speechSpeed,
     bool? keepScreenOn,
     Map<String, String>? voices,
@@ -58,6 +67,8 @@ class AppSettings {
     vibration: vibration ?? this.vibration,
     voice: voice ?? this.voice,
     countdownSeconds: countdownSeconds ?? this.countdownSeconds,
+    secondTicksTime: secondTicksTime ?? this.secondTicksTime,
+    secondTicksReps: secondTicksReps ?? this.secondTicksReps,
     speechSpeed: speechSpeed ?? this.speechSpeed,
     keepScreenOn: keepScreenOn ?? this.keepScreenOn,
     language: language,
@@ -79,6 +90,8 @@ class AppSettings {
     vibration: vibration,
     voice: voice,
     countdownSeconds: countdownSeconds,
+    secondTicksTime: secondTicksTime,
+    secondTicksReps: secondTicksReps,
     speechSpeed: speechSpeed,
     keepScreenOn: keepScreenOn,
     language: languageChoices.contains(language) ? language : null,
@@ -90,6 +103,8 @@ class AppSettings {
     'vibration': vibration,
     'voice': voice,
     'countdownSeconds': countdownSeconds,
+    'secondTicksTime': secondTicksTime,
+    'secondTicksReps': secondTicksReps,
     'speechSpeed': speechSpeed.name,
     'keepScreenOn': keepScreenOn,
     'language': language,
@@ -107,6 +122,8 @@ class AppSettings {
       countdownSeconds: countdownChoices.contains(cd)
           ? cd!
           : d.countdownSeconds,
+      secondTicksTime: j['secondTicksTime'] as bool? ?? d.secondTicksTime,
+      secondTicksReps: j['secondTicksReps'] as bool? ?? d.secondTicksReps,
       speechSpeed:
           SpeechSpeed.values
               .where((e) => e.name == j['speechSpeed'])

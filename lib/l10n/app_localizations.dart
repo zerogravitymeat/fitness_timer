@@ -1215,6 +1215,24 @@ abstract class AppLocalizations {
   /// **'음성 안내'**
   String get voiceGuide;
 
+  /// No description provided for @secondTicksTime.
+  ///
+  /// In ko, this message translates to:
+  /// **'1초 소리 · 시간 모드'**
+  String get secondTicksTime;
+
+  /// No description provided for @secondTicksReps.
+  ///
+  /// In ko, this message translates to:
+  /// **'1초 소리 · 횟수 모드'**
+  String get secondTicksReps;
+
+  /// No description provided for @secondTicksHint.
+  ///
+  /// In ko, this message translates to:
+  /// **'방향 지시등처럼 1초마다 째깍째깍'**
+  String get secondTicksHint;
+
   /// No description provided for @countdownBeforeEnd.
   ///
   /// In ko, this message translates to:

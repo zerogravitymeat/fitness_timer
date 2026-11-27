@@ -5,11 +5,13 @@ enum CueKind {
   tenSecondsLeft,
   repStart,
   repCompleted,
+  secondTick,
   finished,
 }
 
 /// 비프음 종류 (docs/05_기술_설계.md 4.1절)
-enum CueSound { low, high, tick, short, long, done }
+/// [tick]·[tock]은 1초 소리. 방향 지시등처럼 번갈아 내서 초가 구분되게 한다.
+enum CueSound { low, high, tick, tock, short, long, done }
 
 enum CueVibration { short, long, double }
 
